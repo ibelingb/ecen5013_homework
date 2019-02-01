@@ -1,5 +1,4 @@
 bootdir=
 bootpart=0:1
-devtype=mmc
 uenvcmd=run loadimage;run loadramdisk;run findfdt;run loadfdt;run mmcloados
 
