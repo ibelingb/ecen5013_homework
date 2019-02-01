@@ -1,4 +1,6 @@
-bootargs=console=ttyO0,115200n8 root=/dev/mmcblk0p2 mem=128M rootwait
-bootcmd=mmc rescan; fatload mmc 0 0x82000000 uImage; bootm 0x82000000
-uenvcmd=boot
+bootdir=
+bootpart=0:1
+devtype=mmc
+args_mmc=setenv bootargs console=${console} ${optargs} root=/dev/mmcblk0p2 rw rootfstype=${mmcrootfstype}
+uenvcmd=run loadimage;run loadramdisk;run findfdt;run loadfdt;run mmcloados
 
