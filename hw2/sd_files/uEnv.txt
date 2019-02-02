@@ -1,4 +1,0 @@
-bootdir=
-bootpart=0:1
-uenvcmd=run loadimage;run loadramdisk;run findfdt;run loadfdt;run mmcloados
-
