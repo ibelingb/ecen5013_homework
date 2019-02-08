@@ -11,13 +11,13 @@
 #include <time.h>
 
 #define ARRAY_SIZE 10 // initial testing
-//#define ARRAY_SIZE 256
+//#define ARRAY_SIZE 256 // TODO - update
 #define SYSCALL_NUM 398
 
 //---------------------------------------------------------------------------
 // Function Prototypes
 void printArray(int32_t* buffer, size_t len);
-int sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len);
+long sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len);
 
 //---------------------------------------------------------------------------
 int main() {
@@ -33,13 +33,26 @@ int main() {
   }
 
   // Sort array using the defined syscall sys_prob5sort()
-  sortArrayLargest(unsortedArray, sortedArray, (size_t)ARRAY_SIZE);
+  status = sortArrayLargest(unsortedArray, sortedArray, (size_t)ARRAY_SIZE);
 
   return 0;
 }
 
 //---------------------------------------------------------------------------
-int sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len) {
+/*
+ * @brief Sorts an array from largest to smallest in the Kernel Space
+ *
+ * Function utilizes a custom made syscall to sort an array in descending order
+ * within the kernel space. Sorted array is returned via the {outputBuffer} pointer.
+ *
+ * @param inputBuffer  - Input array of data (unsorted)
+ * @param outputBuffer - Returned array of data (sorted)
+ * @param len          - Number of elements in array
+ *
+ * @return Success or Error code for function
+ */
+long sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len) {
+  long status;
   size_t i, j = 0;
   int32_t* sortedArray = NULL;
 
@@ -64,6 +77,10 @@ int sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len) {
 
   // Copy array into kernel space (Pre-sort)
   // TODO
+
+  // Make system call 
+  // status = syscall(SYSCALL_NUM); // Testing
+  // status = syscall(SYSCALL_NUM, inputBuffer, outputBuffer, len);
 
   // Sort array
   int32_t swapValue = 0;
@@ -90,6 +107,8 @@ int sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len) {
   return 0;
 }
 
+//---------------------------------------------------------------------------
+// Helper Functions
 //---------------------------------------------------------------------------
 void printArray(int32_t* buffer, size_t len){
   size_t i = 0;
