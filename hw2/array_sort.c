@@ -8,23 +8,38 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 
+#define ARRAY_SIZE 10 // initial testing
+//#define ARRAY_SIZE 256
+#define SYSCALL_NUM 398
+
+//---------------------------------------------------------------------------
 // Function Prototypes
 void printArray(int32_t* buffer, size_t len);
-int sortArrayLargest(int32_t* inputBuffer, size_t len, int32_t** outputBuffer);
+int sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len);
 
 //---------------------------------------------------------------------------
 int main() {
-  int32_t array[] = {1,2,3,4,5};
-  int32_t* outArray = NULL;
+  int32_t unsortedArray[ARRAY_SIZE];
+  int32_t sortedArray[ARRAY_SIZE];
+  long status;
+  size_t i;
 
-  sortArrayLargest(array, 5, &outArray);
+  // Populate unsortedArray with random values
+  srand(time(NULL));
+  for(i=0; i<ARRAY_SIZE; i++) {
+    unsortedArray[i] = rand();
+  }
+
+  // Sort array using the defined syscall sys_prob5sort()
+  sortArrayLargest(unsortedArray, sortedArray, (size_t)ARRAY_SIZE);
 
   return 0;
 }
 
 //---------------------------------------------------------------------------
-int sortArrayLargest(int32_t* inputBuffer, size_t len, int32_t** outputBuffer) {
+int sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len) {
   size_t i, j = 0;
   int32_t* sortedArray = NULL;
 
