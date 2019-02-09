@@ -1,18 +1,19 @@
-// array_sort.c
-// ECEN5013 - HW2, prob5
-// Date: 2/3/2019
+// syscalls.c
+// ECEN5013 - HW 2, Problem 6
+// Date: 2/8/2019
 // Author: Brian Ibeling
-// About: Array sort method (largest to smallest) to demonstrating running in Kernel Space
+// About: Calls various syscall methods
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <time.h>
 
-#define ARRAY_SIZE 10 // initial testing
-//#define ARRAY_SIZE 256 // TODO - update
+#define ARRAY_SIZE 10
 #define MYSORT_SYSCALL_NUM 398
+#define PID_SYSCALL_NUM 20 // Process Syscall ID
+#define UID_SYSCALL_NUM 24 // User Syscall ID
+#define DT_SYSCALL_NUM 13  // Date/Time Syscall ID
 
 //---------------------------------------------------------------------------
 // Function Prototypes
@@ -34,6 +35,36 @@ int main() {
 
   // Sort array using the defined syscall sys_prob5sort()
   status = sortArrayLargest(unsortedArray, sortedArray, (size_t)ARRAY_SIZE);
+  if(status == 0){
+    // Print array
+    printArray(sortedArray, len);
+  } else {
+    printf("Failed to sort provided array\n");
+  }
+
+  // Make Syscall for PID
+  status = syscall(PID_SYSCALL_NUM);
+  if(status == 0){
+    printf("Returned PID: {%d}\n", status);
+  } else { 
+    printf("Failed to get PID via Syscall()");
+  }
+
+  // Make Syscall for UID
+  status = syscall(UID_SYSCALL_NUM);
+  if(status == 0){
+    printf("Returned UID: {%d}\n", status);
+  } else { 
+    printf("Failed to get UID via Syscall()");
+  }
+
+  // Make Syscall for Date/Time
+  status = syscall(DT_SYSCALL_NUM);
+  if(status == 0){
+    printf("Returned Date/Time: {%d}\n", status);
+  } else { 
+    printf("Failed to get Date/Time via Syscall()");
+  }
 
   return 0;
 }
