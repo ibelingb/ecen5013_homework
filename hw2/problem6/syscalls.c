@@ -1,13 +1,18 @@
-// syscalls.c
-// ECEN5013 - HW 2, Problem 6
-// Date: 2/8/2019
+// array_sort.c
+// ECEN5013 - HW2, prob5
+// Date: 2/3/2019
 // Author: Brian Ibeling
-// About: Calls various syscall methods
+// About: Array sort method (largest to smallest) to demonstrating running in Kernel Space
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define ARRAY_SIZE 10
 #define MYSORT_SYSCALL_NUM 398
@@ -18,14 +23,14 @@
 //---------------------------------------------------------------------------
 // Function Prototypes
 void printArray(int32_t* buffer, size_t len);
-long sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len);
 
 //---------------------------------------------------------------------------
 int main() {
   int32_t unsortedArray[ARRAY_SIZE];
   int32_t sortedArray[ARRAY_SIZE];
-  long status;
+  unsigned long status;
   size_t i;
+  struct timeval tv;
 
   // Populate unsortedArray with random values
   srand(time(NULL));
@@ -34,109 +39,27 @@ int main() {
   }
 
   // Sort array using the defined syscall sys_prob5sort()
-  status = sortArrayLargest(unsortedArray, sortedArray, (size_t)ARRAY_SIZE);
-  if(status == 0){
-    // Print array
-    printArray(sortedArray, len);
-  } else {
-    printf("Failed to sort provided array\n");
-  }
+  printf("\n\nUsing Kernel Sort syscall() to sort the following array with size {%d} [User Space] :\n", ARRAY_SIZE);
+  printArray(unsortedArray, ARRAY_SIZE);
+  sleep(1); // sleep added to allow serial output log to clear
+  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, sortedArray, (int)ARRAY_SIZE);
+  sleep(1); // sleep added to allow serial output log to clear
+  printf("Kernel Sort syscall() returned with status {%ld}:\n", status);
+  printf("\n\nKernel Sort syscall() has sorted the following array [User Space] :\n");
+  printArray(sortedArray, ARRAY_SIZE);
 
   // Make Syscall for PID
   status = syscall(PID_SYSCALL_NUM);
-  if(status == 0){
-    printf("Returned PID: {%d}\n", status);
-  } else { 
-    printf("Failed to get PID via Syscall()");
-  }
+  printf("\nReturned PID: {%ld}\n", status);
 
   // Make Syscall for UID
   status = syscall(UID_SYSCALL_NUM);
-  if(status == 0){
-    printf("Returned UID: {%d}\n", status);
-  } else { 
-    printf("Failed to get UID via Syscall()");
-  }
+  printf("Returned UID: {%ld}\n", status);
 
   // Make Syscall for Date/Time
-  status = syscall(DT_SYSCALL_NUM);
-  if(status == 0){
-    printf("Returned Date/Time: {%d}\n", status);
-  } else { 
-    printf("Failed to get Date/Time via Syscall()");
-  }
+  gettimeofday(&tv, NULL);
+  printf("Returned Date/Time: %s\n", asctime(gmtime(&tv.tv_sec)));
 
-  return 0;
-}
-
-//---------------------------------------------------------------------------
-/*
- * @brief Sorts an array from largest to smallest in the Kernel Space
- *
- * Function utilizes a custom made syscall to sort an array in descending order
- * within the kernel space. Sorted array is returned via the {outputBuffer} pointer.
- *
- * @param inputBuffer  - Input array of data (unsorted)
- * @param outputBuffer - Returned array of data (sorted)
- * @param len          - Number of elements in array
- *
- * @return Success or Error code for function
- */
-long sortArrayLargest(int32_t* inputBuffer, int32_t* outputBuffer, size_t len) {
-  long status;
-  size_t i, j = 0;
-  int32_t* sortedArray = NULL;
-
-  // Validate received inputs
-  if((inputBuffer == NULL) || (outputBuffer == NULL) | (len <= 0)){
-    printf("Invalid inputs received. sortArray failed to complete successfully.\n");
-    return -1; // TODO: update to use errno.h
-  }
-
-  printf("Beginning sortedArray() for received array of length {%ld}.\nReceived array contents:\n", len);
-  printArray(inputBuffer, len);
-
-  // Allocate memory
-  sortedArray = malloc(len*sizeof(int32_t));
-  if(sortedArray == NULL){
-    printf("Failed to allocate memory for sorting array.\n");
-    return -1; // TODO - update
-  }
-
-  // Copy input array contents to output array
-  memcpy(sortedArray, inputBuffer, len*sizeof(int32_t));
-
-  // Copy array into kernel space (Pre-sort)
-  // TODO
-
-  // Make system call 
-  // status = syscall(MYSORT_SYSCALL_NUM, inputBuffer, outputBuffer, len);
-  // status = syscall(MYSORT_SYSCALL_NUM); // Testing
-  //
-  // printf("Syscall returned with status: {%ld}\n", status);
-
-  // Sort array
-  int32_t swapValue = 0;
-  for(i=0; i<(len-1); i++){
-    for(j=0; j<(len-i-1); j++){
-      if(sortedArray[j] < sortedArray[j+1]){
-        swapValue = sortedArray[j];
-        sortedArray[j] = sortedArray[j+1];
-        sortedArray[j+1] = swapValue;
-      }
-    }
-  }
-
-
-  // Copy array into user space (Post-sort)
-  // TODO
-
-  // Print sorted array contents
-  printf("\nSorted Array:\n");
-  printArray(sortedArray, len);
-
-  // Deallocate memory
-  free(sortedArray);
   return 0;
 }
 

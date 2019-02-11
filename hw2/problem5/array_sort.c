@@ -34,25 +34,32 @@ int main() {
   }
 
   // Sort array using the defined syscall sys_prob5sort()
-  printf("\n\nUsing Kernel Sort syscall() to sort the following array with size {%d}:\n", ARRAY_SIZE);
+  printf("\n\nUsing Kernel Sort syscall() to sort the following array with size {%d} [User Space] :\n", ARRAY_SIZE);
   printArray(unsortedArray, ARRAY_SIZE);
-  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, sortedArray, ARRAY_SIZE);
+  sleep(3); // sleep added to allow serial output log to clear
+  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, sortedArray, (int)ARRAY_SIZE);
+  sleep(3); // sleep added to allow serial output log to clear
   printf("Kernel Sort syscall() returned with status {%ld}:\n", status);
-  printf("\n\nKernel Sort syscall() has sorted the following array:\n");
+  printf("\n\nKernel Sort syscall() has sorted the following array [User Space] :\n");
   printArray(sortedArray, ARRAY_SIZE);
 
   // Now test array sort syscall() with invalid parameters
-  status = syscall(MYSORT_SYSCALL_NUM, NULL, sortedArray, ARRAY_SIZE);
-  printf("Kernel Sort syscall() with NULL input returned with status {%ld}:\n", status);
+  printf("\n\n ** Invalid input parameter tests **\n\n");
+  status = syscall(MYSORT_SYSCALL_NUM, NULL, sortedArray, (int)ARRAY_SIZE);
+  printf("*TEST 1*\nKernel Sort syscall() with NULL input returned with status {%ld}:\n", status);
+  sleep(2);
 
-  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, NULL, ARRAY_SIZE);
-  printf("Kernel Sort syscall() with NULL input returned with status {%ld}:\n", status);
+  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, NULL, (int)ARRAY_SIZE);
+  printf("\n*TEST 2*\nKernel Sort syscall() with NULL input returned with status {%ld}:\n", status);
+  sleep(2);
 
-  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, sortedArray, 0);
-  printf("Kernel Sort syscall() with 0 length returned with status {%ld}:\n", status);
+  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, sortedArray, (int)0);
+  printf("\n*TEST 3\nKernel Sort syscall() with 0 length returned with status {%ld}:\n", status);
+  sleep(2);
 
-  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, sortedArray, -1);
-  printf("Kernel Sort syscall() with -1 length returned with status {%ld}:\n", status);
+  status = syscall(MYSORT_SYSCALL_NUM, unsortedArray, sortedArray, (int)-1);
+  printf("\n*TEST 4\nKernel Sort syscall() with -1 length returned with status {%ld}:\n", status);
+  sleep(2);
 
   return 0;
 }

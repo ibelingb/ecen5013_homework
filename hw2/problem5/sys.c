@@ -854,7 +854,7 @@ SYSCALL_DEFINE0(getpid)
  * @return Success (0) or Error code for function
  */
 
-SYSCALL_DEFINE3(myarraysort, int*, unsortedArray, int*, sortedArray, size_t, len)
+SYSCALL_DEFINE3(myarraysort, int*, unsortedArray, int*, sortedArray, int, len)
 {
   // Validate inputs
   if((unsortedArray == NULL) || (sortedArray == NULL) | (len <= 0)){
@@ -881,7 +881,7 @@ SYSCALL_DEFINE3(myarraysort, int*, unsortedArray, int*, sortedArray, size_t, len
 
   if(status == 0){
     // Print input array Contents
-    printk(KERN_INFO "\n\n** Unsorted array **\n");
+    printk(KERN_INFO "\n\n** Unsorted array [Kernel Space] **\n");
     for(i=0; i<len; i++) {
       printk(KERN_INFO "Unsorted array [%d]: %d\n", i, kArray[i]);
     }
@@ -898,7 +898,7 @@ SYSCALL_DEFINE3(myarraysort, int*, unsortedArray, int*, sortedArray, size_t, len
     }
 
     // Print input array Contents
-    printk(KERN_INFO "\n\n** Sorted array **\n");
+    printk(KERN_INFO "\n\n** Sorted array [Kernel Space] **\n");
     for(i=0; i<len; i++) {
       printk(KERN_INFO "[%d]: %d\n", i, kArray[i]);
     }
