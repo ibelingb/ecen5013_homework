@@ -1,0 +1,153 @@
+Using Kernel Sort syscall() to sort the following array with size {10} [User Space] :
+Buffer[0]: 840111606
+Buffer[1]: 171426517
+Buffer[2]: 2048879176
+Buffer[3]: 907537759
+Buffer[4]: 1588892082
+Buffer[5]: 385118298
+Buffer[6]: 1188668372
+Buffer[7]: 622898194
+Buffer[8]: 781820509
+Buffer[9]: 1406645578
+Kernel Sort syscall() returned with status {0}:
+
+
+Kernel Sort syscall() has sorted the following array [User Space] :
+Buffer[0]: 2048879176
+Buffer[1]: 1588892082
+Buffer[2]: 1406645578
+Buffer[3]: 1188668372
+Buffer[4]: 907537759
+Buffer[5]: 840111606
+Buffer[6]: 781820509
+Buffer[7]: 622898194
+Buffer[8]: 385118298
+Buffer[9]: 171426517
+
+Returned PID: {250}
+Returned UID: {0}
+Returned Date/Time: Thu Jan  1 00:20:03 1970
+
+
+
+Using Kernel Sort syscall() to sort the following array with size {10} [User Space] :
+Buffer[0]: 900187177
+Buffer[1]: 1987284248
+Buffer[2]: 90919058
+Buffer[3]: 2120867951
+Buffer[4]: 1411755682
+Buffer[5]: 1446443255
+Buffer[6]: 356742612
+Buffer[7]: 655008907
+Buffer[8]: 346204597
+Buffer[9]: 987080273
+Kernel Sort syscall() returned with status {0}:
+
+
+Kernel Sort syscall() has sorted the following array [User Space] :
+Buffer[0]: 2120867951
+Buffer[1]: 1987284248
+Buffer[2]: 1446443255
+Buffer[3]: 1411755682
+Buffer[4]: 987080273
+Buffer[5]: 900187177
+Buffer[6]: 655008907
+Buffer[7]: 356742612
+Buffer[8]: 346204597
+Buffer[9]: 90919058
+
+Returned PID: {261}
+Returned UID: {0}
+Returned Date/Time: Thu Jan  1 00:30:03 1970
+
+Using Kernel Sort syscall() to sort the following array with size {10} [User Space] :
+Buffer[0]: 2040254823
+Buffer[1]: 588565515
+Buffer[2]: 289115606
+Buffer[3]: 120577325
+Buffer[4]: 1242436494
+Buffer[5]: 1444315172
+Buffer[6]: 1681556222
+Buffer[7]: 1770070094
+Buffer[8]: 2070251967
+Buffer[9]: 1652520433
+Kernel Sort syscall() returned with status {0}:
+
+
+Kernel Sort syscall() has sorted the following array [User Space] :
+Buffer[0]: 2070251967
+Buffer[1]: 2040254823
+Buffer[2]: 1770070094
+Buffer[3]: 1681556222
+Buffer[4]: 1652520433
+Buffer[5]: 1444315172
+Buffer[6]: 1242436494
+Buffer[7]: 588565515
+Buffer[8]: 289115606
+Buffer[9]: 120577325
+
+Returned PID: {272}
+Returned UID: {0}
+Returned Date/Time: Thu Jan  1 00:40:03 1970
+
+
+
+Using Kernel Sort syscall() to sort the following array with size {10} [User Space] :
+Buffer[0]: 2103689287
+Buffer[1]: 1332526715
+Buffer[2]: 1554878414
+Buffer[3]: 264206400
+Buffer[4]: 2141378185
+Buffer[5]: 1434709220
+Buffer[6]: 854464345
+Buffer[7]: 1805139559
+Buffer[8]: 564066695
+Buffer[9]: 1238706187
+Kernel Sort syscall() returned with status {0}:
+
+
+Kernel Sort syscall() has sorted the following array [User Space] :
+Buffer[0]: 2141378185
+Buffer[1]: 2103689287
+Buffer[2]: 1805139559
+Buffer[3]: 1554878414
+Buffer[4]: 1434709220
+Buffer[5]: 1332526715
+Buffer[6]: 1238706187
+Buffer[7]: 854464345
+Buffer[8]: 564066695
+Buffer[9]: 264206400
+
+Returned PID: {287}
+Returned UID: {0}
+Returned Date/Time: Thu Jan  1 00:50:03 1970
+
+Using Kernel Sort syscall() to sort the following array with size {10} [User Space] :
+Buffer[0]: 9410919
+Buffer[1]: 993262032
+Buffer[2]: 1739654315
+Buffer[3]: 395908419
+Buffer[4]: 1954916800
+Buffer[5]: 342749928
+Buffer[6]: 1087245074
+Buffer[7]: 752176558
+Buffer[8]: 121320744
+Buffer[9]: 808801417
+Kernel Sort syscall() returned with status {0}:
+
+
+Kernel Sort syscall() has sorted the following array [User Space] :
+Buffer[0]: 1954916800
+Buffer[1]: 1739654315
+Buffer[2]: 1087245074
+Buffer[3]: 993262032
+Buffer[4]: 808801417
+Buffer[5]: 752176558
+Buffer[6]: 395908419
+Buffer[7]: 342749928
+Buffer[8]: 121320744
+Buffer[9]: 9410919
+
+Returned PID: {308}
+Returned UID: {0}
+Returned Date/Time: Thu Jan  1 01:00:03 1970
