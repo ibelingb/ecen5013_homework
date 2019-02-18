@@ -21,29 +21,35 @@ struct Animal {
 //---------------------------------------------------------------------------
 /* Static and local Variables */
 // Filter parameters
-static char * animal_type = ""; // Filter for animal type
-static unsigned int count_greater_than = 0; // filter for count
+static char * animal_type_prm = ""; // Filter for animal type
+static unsigned int count_greater_than_prm = 0; // filter for count
 
 /* Define modules parameters */
-module_param(animal_type, charp, S_IRUGO);
-module_param(count_greater_than, uint, S_IRUGO);
+module_param(animal_type_prm, charp, S_IRUGO);
+module_param(count_greater_than_prm, uint, S_IRUGO);
 
 // Global variables
 struct Animal animalList;
 static unsigned int animalListSize = 0;
+static unsigned int set1ListSize = 0;
+static unsigned int set2ListSize = 0;
+
+// helper functions
+int printAnimalArray(void);
 
 //---------------------------------------------------------------------------
 
 /* Methods - kernel module */
 static int __init animal_sort_init(void)
 {
-  // Local variables
-  struct Animal* currentAnimal;
-  struct Animal* newAnimal;
-  struct Animal* animal;
-  size_t i, j;
-
   printk(KERN_ALERT "Installing animal_sort module.");
+
+  // Local variables
+  struct Animal* currentAnimal; // Used for sorting
+  struct Animal* newAnimal; // Used for sorting
+  struct Animal *animal; // Used for filtering
+  struct Animal *tmp; // Used for filtering
+  size_t i;
 
   // Define animal seed array
   char* seedAnimalArray[] = { "frog", "frog", "wolf", "fox", "otter", 
@@ -54,8 +60,8 @@ static int __init animal_sort_init(void)
                               "lizard", "lion", "duck", "cow", "pig", 
                               "gecko", "hippo", "tiger", "zebra", "ape", 
                               "giraffe", "monkey", "rhino", "elephant", "hampster", 
-                              "snake", "whale", "fish", "starfish", "shrimp", 
-                              "a", "b", "c", "d", "e" };
+                              "giraffe", "monkey", "rhino", "elephant", "hampster", 
+                              "snake", "whale", "fish", "starfish", "shrimp"};
 
   // Print seed array
   printk(KERN_INFO "Received animal array to sort and print:\n");
@@ -132,19 +138,55 @@ static int __init animal_sort_init(void)
     }
   }
 
-  // Print data for all linked list entries
-  i = 0;
-  printk(KERN_INFO "\n\n** Animal Array Sorted **\nLinked List AnimalArray with size {%d}\n", animalListSize);
-  list_for_each_entry(animal, &animalList.list, list){
-    printk(KERN_INFO "Linked List AnimalArray[%d]: {%s} with count {%d}\n", i, animal->name, animal->count);
-    i++;
-  }
+  // Print full sorted AnimalArray
+  printk(KERN_INFO "\n\n** Animal Array Sorted (Full List) **\n");
+  printAnimalArray();
+  set1ListSize = sizeof(struct Animal)*animalListSize;
+  printk(KERN_INFO "Total memory allocated and deallocated for Set1 equals: {%d} bytes.\n", set1ListSize);
 
+  // Output list with no filters
+  printk(KERN_INFO "\n\n** Animal Array Sorted (No Filters) **\n");
+  printAnimalArray();
+  set2ListSize = sizeof(struct Animal)*animalListSize;
+
+  // Apply filter for count_greater_than
+  list_for_each_entry_safe(animal, tmp, &animalList.list, list)
+  {
+    if(animal->count <= count_greater_than_prm)
+    {
+      list_del(&animal->list);
+      vfree(animal);
+      animalListSize--;
+    }
+  }
+  printk(KERN_INFO "\n\n** Animal Array Sorted (Filtered by count_greater_than={%d})**\n", count_greater_than_prm);
+  printAnimalArray();
+  set2ListSize += sizeof(struct Animal)*animalListSize;
+
+  // Additionally, apply filter for name as well
+  list_for_each_entry_safe(animal, tmp, &animalList.list, list)
+  {
+    if(strcmp(animal->name, animal_type_prm) != 0)
+    {
+      list_del(&animal->list);
+      vfree(animal);
+      animalListSize--;
+    }
+  }
+  printk(KERN_INFO "\n\n** Animal Array Sorted (Filtered by count_greater_than={%d} and name={%s})**\n", count_greater_than_prm, animal_type_prm);
+  printAnimalArray();
+  set2ListSize += sizeof(struct Animal)*animalListSize;
+
+  printk(KERN_INFO "Total memory allocated and deallocated for Set2 equals: {%d} bytes.\n", set2ListSize);
+
+  printk(KERN_ALERT "Installing animal_sort module complete.");
   return 0;
 }
 
 static void __exit animal_sort_exit(void)
 {
+  printk("Uninstalling animal_sort module\n");
+
   struct Animal *animal, *tmp;
   // Remove each element from linked list, deallocate memory
   list_for_each_entry_safe(animal, tmp, &animalList.list, list){
@@ -152,12 +194,30 @@ static void __exit animal_sort_exit(void)
     list_del(&animal->list);
     vfree(animal);
   }
+
   printk("Uninstalled animal_sort module\n");
+  return;
 }
 
 
 //---------------------------------------------------------------------------
 /* Methods */
+
+int printAnimalArray(void)
+{
+  struct Animal* animal;
+  size_t i = 0;
+
+  // Print data for all linked list entries and total allocated memory
+  printk(KERN_INFO "Linked List AnimalArray with {%d} total nodes.\n", animalListSize);
+  printk(KERN_INFO "Total memory allocated equals: {%d} bytes. \n\n", sizeof(struct Animal)*animalListSize);
+  list_for_each_entry(animal, &animalList.list, list){
+    printk(KERN_INFO "Linked List AnimalArray[%d]: {%s} with count {%d}\n", i, animal->name, animal->count);
+    i++;
+  }
+
+  return 0;
+}
 
 //---------------------------------------------------------------------------
 
