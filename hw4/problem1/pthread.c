@@ -3,6 +3,10 @@
  * Author: Brian Ibeling
  * About: C program to demonstrate multithreading and sharing data between
  *        multiple threads via a file.
+ * Resources: Utilized the following resourecs when developing the code contained in this file.
+ *    - https://riptutorial.com/posix/example/16306/posix-timer-with-sigev-thread-notification
+ *    - https://www3.physnet.uni-hamburg.de/physnet/Tru64-Unix/HTML/APS33DTE/DOCU_007.HTM
+ *    - http://devarea.com/linux-handling-signals-in-a-multithreaded-application/#.XHNsfuhKiHt
  */
 
 #include <stdio.h>
@@ -24,7 +28,8 @@
 
 /* Define static and global variables */
 pthread_t gThreads[NUM_THREADS];
-pthread_mutex_t fileMutex;
+pthread_mutex_t gFileMutex;
+char* gLogFilename;
 
 struct threadInfo
 {
@@ -32,11 +37,12 @@ struct threadInfo
   char* filename;
 };
 
-/* Define module parameters */
+/* Define Function Prototypes */
 static void *parentHandler(void* tInfo);
 static void *childHandler1(void* tInfo);
 static void *childHandler2(void* tInfo);
-static void cpu_timer_handler(union sigval sv);
+static void cpuTimerHandler(union sigval sv);
+void sigHandler(int signo);
 
 /* ------------------------------------------------------------- */
 int main(void) {
@@ -83,11 +89,11 @@ static void *parentHandler(void* tInfo) {
   }
 
   // Write thread info and starttime to file
-  pthread_mutex_lock(&fileMutex);
+  pthread_mutex_lock(&gFileMutex);
   fprintf(pFile, "[Parent Thread]: Started at %s", asctime(gmtime(&tv.tv_sec)));
   fprintf(pFile, "[Parent Thread]: Started with PID {%d} and TID {%d}.\n", 
           parentTinfo.pid, (pid_t)syscall(SYS_gettid));
-  pthread_mutex_unlock(&fileMutex);
+  pthread_mutex_unlock(&gFileMutex);
 
   // Create child thread 1
   printf("Creating child thread 1.\n");
@@ -111,9 +117,9 @@ static void *parentHandler(void* tInfo) {
 
   // Write parent thread complete to log file
   gettimeofday(&tv, NULL);
-  pthread_mutex_lock(&fileMutex);
+  pthread_mutex_lock(&gFileMutex);
   fprintf(pFile, "[Parent Thread]: Completed at {%s}\n", asctime(gmtime(&tv.tv_sec)));
-  pthread_mutex_unlock(&fileMutex);
+  pthread_mutex_unlock(&gFileMutex);
 
   // Close shared file
   fclose(pFile);
@@ -140,11 +146,11 @@ static void *childHandler1(void* tInfo) {
   }
 
   // Write thread info and starttime to file
-  pthread_mutex_lock(&fileMutex);
+  pthread_mutex_lock(&gFileMutex);
   fprintf(pFile, "[Child Thread 1]: Started at %s", asctime(gmtime(&tv.tv_sec)));
   fprintf(pFile, "[Child Thread 1]: Started with PID {%d} and TID {%d}.\n", 
           child1Tinfo.pid, (pid_t)syscall(SYS_gettid));
-  pthread_mutex_unlock(&fileMutex);
+  pthread_mutex_unlock(&gFileMutex);
 
   // Read input file to analyze; print an error if file not found or fails to open
   // TODO
@@ -163,15 +169,24 @@ static void *childHandler2(void* tInfo) {
   struct threadInfo child2Tinfo = *(struct threadInfo*)tInfo;
   FILE* pFile = NULL;
   struct timeval tv;
-  int status = 0;
-
-  // Create variables needed for timer
-  timer_t timerId;
   struct sigevent sigEvent;
   struct itimerspec timeSpec;
+  timer_t timerId;
+  int status = 0;
+
+  // Define signal handlers and global var for log filename
+  gLogFilename = child2Tinfo.filename;
+  signal(SIGUSR1, sigHandler);
+
+  // Clear struct memory to 0
+  memset(&tv, 0, sizeof(struct timeval));
+  memset(&sigEvent, 0, sizeof(struct sigevent));
+  memset(&timeSpec, 0, sizeof(struct itimerspec));
+
+  // Populate variables needed for timer
   sigEvent.sigev_notify = SIGEV_THREAD;
   sigEvent.sigev_value.sival_ptr = child2Tinfo.filename;
-  sigEvent.sigev_notify_function = cpu_timer_handler;
+  sigEvent.sigev_notify_function = cpuTimerHandler;
   sigEvent.sigev_notify_attributes = NULL;
   // Define time to trigger every 100 msec
   timeSpec.it_value.tv_sec = 0;
@@ -189,21 +204,21 @@ static void *childHandler2(void* tInfo) {
   }
 
   // Write thread info and starttime to file
-  pthread_mutex_lock(&fileMutex);
+  pthread_mutex_lock(&gFileMutex);
   fprintf(pFile, "[Child Thread 2]: Started at %s", asctime(gmtime(&tv.tv_sec)));
   fprintf(pFile, "[Child Thread 2]: Started with PID {%d} and TID {%d}.\n", 
           child2Tinfo.pid, (pid_t)syscall(SYS_gettid));
-  pthread_mutex_unlock(&fileMutex);
+  pthread_mutex_unlock(&gFileMutex);
 
   // Create and set timer
   status = timer_create(CLOCK_REALTIME, &sigEvent, &timerId);
   if(status != 0){
-    printf("Failed to create timer for childThread2 - terminating.\n");
+    printf("Failed to create Posix timer for childThread2 - terminating.\n");
     return NULL;
   }
   status = timer_settime(timerId, 0, &timeSpec, NULL);
   if(status != 0){
-    printf("Failed to create timer for childThread2 - terminating.\n");
+    printf("Failed to start Posix timer for childThread2 - terminating.\n");
     return NULL;
   }
 
@@ -218,7 +233,7 @@ static void *childHandler2(void* tInfo) {
 }
 
 /* ------------------------------------------------------------- */
-static void cpu_timer_handler(union sigval sv){
+static void cpuTimerHandler(union sigval sv){
   FILE* pFile;
   FILE* pCpuFile = NULL;
   char* filename = (char*)sv.sival_ptr;
@@ -243,13 +258,29 @@ static void cpu_timer_handler(union sigval sv){
   fgets(cpuStatus2, sizeof(cpuStatus2), pCpuFile);
 
   // Write output to file
-  pthread_mutex_lock(&fileMutex);
+  pthread_mutex_lock(&gFileMutex);
   fprintf(pFile, "[Child Thread 2]:\n%s%s", cpuStatus1, cpuStatus2);
-  pthread_mutex_unlock(&fileMutex);
+  pthread_mutex_unlock(&gFileMutex);
 
   // Close /proc/stat file
   fclose(pFile);
   fclose(pCpuFile);
 }
 
+/* ------------------------------------------------------------- */
+void sigHandler(int signo) {
+  FILE * pLogFile = NULL;
+  if((pLogFile = fopen(gLogFilename, "a")) == NULL){
+    printf("ERROR: Failed to open logfile for sigHandler - terminating.\n");
+    return;
+  }
+
+  if(signo == SIGUSR1){
+    pthread_mutex_lock(&gFileMutex);
+    fprintf(pLogFile, "USR1 Signal received");
+    pthread_mutex_unlock(&gFileMutex);
+
+  }
+
+}
 /* ------------------------------------------------------------- */
