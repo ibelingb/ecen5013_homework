@@ -13,13 +13,14 @@
 #include <string.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
+#include <sys/signal.h>
 //#include <sys/types.h>
 //#include <sys/wait.h>
 
 #define NUM_THREADS 3
 #define WT 5
 #define CPU_STAT_LINES 2
-#define STRING_BUFFER_SIZE 500
+#define READ_BUFFER_SIZE 100
 
 /* Define static and global variables */
 pthread_t gThreads[NUM_THREADS];
@@ -35,6 +36,7 @@ struct threadInfo
 static void *parentHandler(void* tInfo);
 static void *childHandler1(void* tInfo);
 static void *childHandler2(void* tInfo);
+static void cpu_timer_handler(union sigval sv);
 
 /* ------------------------------------------------------------- */
 int main(void) {
@@ -160,13 +162,22 @@ static void *childHandler1(void* tInfo) {
 static void *childHandler2(void* tInfo) {
   struct threadInfo child2Tinfo = *(struct threadInfo*)tInfo;
   FILE* pFile = NULL;
-  FILE* pCpuFile = NULL;
-  char* fileOutput;
-  char* cpuStatus[CPU_STAT_LINES];
   struct timeval tv;
-  size_t i = 0;
-  size_t len = 0;
-  //int status = 0;
+  int status = 0;
+
+  // Create variables needed for timer
+  timer_t timerId;
+  struct sigevent sigEvent;
+  struct itimerspec timeSpec;
+  sigEvent.sigev_notify = SIGEV_THREAD;
+  sigEvent.sigev_value.sival_ptr = child2Tinfo.filename;
+  sigEvent.sigev_notify_function = cpu_timer_handler;
+  sigEvent.sigev_notify_attributes = NULL;
+  // Define time to trigger every 100 msec
+  timeSpec.it_value.tv_sec = 0;
+  timeSpec.it_value.tv_nsec = 100000000;
+  timeSpec.it_interval.tv_sec = 0;
+  timeSpec.it_interval.tv_nsec = 100000000;
 
   // Capture thread start time
   gettimeofday(&tv, NULL);
@@ -184,46 +195,61 @@ static void *childHandler2(void* tInfo) {
           child2Tinfo.pid, (pid_t)syscall(SYS_gettid));
   pthread_mutex_unlock(&fileMutex);
 
-  // Allocate memory for file read buffer
-  for(i=0; i<CPU_STAT_LINES; i++){
-    cpuStatus[i] = malloc(STRING_BUFFER_SIZE*sizeof(char));
+  // Create and set timer
+  status = timer_create(CLOCK_REALTIME, &sigEvent, &timerId);
+  if(status != 0){
+    printf("Failed to create timer for childThread2 - terminating.\n");
+    return NULL;
+  }
+  status = timer_settime(timerId, 0, &timeSpec, NULL);
+  if(status != 0){
+    printf("Failed to create timer for childThread2 - terminating.\n");
+    return NULL;
   }
 
-  int count = 0;
-
-  // Enter a while loop to print CPU utilization every 100 msec
-  while(count < 6) {
-    // Open /proc/stat file to read from
-    if ((pCpuFile = fopen("/proc/stat", "r")) == NULL){
-      fclose(pFile);
-      printf("ERROR: Failed to open /proc/stat for childThread2 - terminating.\n");
-      return NULL;
-    }
-
-    // Read first lines from /proc/stat file
-    for(i=0; i<CPU_STAT_LINES; i++){
-      getline(&fileOutput, &len, pCpuFile);
-      strcpy(cpuStatus[i], fileOutput);
-    }
-
-    pthread_mutex_lock(&fileMutex);
-    for(i=0; i<CPU_STAT_LINES; i++){
-      fprintf(pFile, "[Child Thread 2]: /proc/stat line[%d]:%s", i, cpuStatus[i]);
-    }
-    pthread_mutex_unlock(&fileMutex);
-
-    // Close /proc/stat file
-    fclose(pCpuFile);
-
-    sleep(1);
-    count++;
-  }
-
-  // Close shared file and /proc/stat file
+  // Loop program - Sig Event Handler will kill thread
+  sleep(10);
+  
+  // Close shared file
   fclose(pFile);
 
   printf("Child thread 2 complete.\n");
   return NULL;
+}
+
+/* ------------------------------------------------------------- */
+static void cpu_timer_handler(union sigval sv){
+  FILE* pFile;
+  FILE* pCpuFile = NULL;
+  char* filename = (char*)sv.sival_ptr;
+  char cpuStatus1[READ_BUFFER_SIZE];
+  char cpuStatus2[READ_BUFFER_SIZE];
+
+  // Open /proc/stat file to read from
+  if ((pCpuFile = fopen("/proc/stat", "r")) == NULL){
+    printf("ERROR: Failed to open /proc/stat for childThread2 - returning from timer thread.\n");
+    return;
+  }
+
+  // Open shared file to write to
+  if ((pFile = fopen(filename, "a")) == NULL){
+    printf("ERROR: Failed to open logfile for childThread2 - terminating.\n");
+    return;
+  }
+
+  // Read lines from /proc/stat file
+  // Read data before taking mutex to limit time in critical section
+  fgets(cpuStatus1, sizeof(cpuStatus1), pCpuFile);
+  fgets(cpuStatus2, sizeof(cpuStatus2), pCpuFile);
+
+  // Write output to file
+  pthread_mutex_lock(&fileMutex);
+  fprintf(pFile, "[Child Thread 2]:\n%s%s", cpuStatus1, cpuStatus2);
+  pthread_mutex_unlock(&fileMutex);
+
+  // Close /proc/stat file
+  fclose(pFile);
+  fclose(pCpuFile);
 }
 
 /* ------------------------------------------------------------- */
