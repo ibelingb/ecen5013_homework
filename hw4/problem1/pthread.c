@@ -27,9 +27,13 @@
 #define READ_BUFFER_SIZE 100
 
 /* Define static and global variables */
+int gChild1Tid;
+int gChild2Tid;
 pthread_t gThreads[NUM_THREADS];
 pthread_mutex_t gFileMutex;
 char* gLogFilename;
+FILE* pChild1File = NULL;
+FILE* pChild2File = NULL;
 
 struct threadInfo
 {
@@ -39,10 +43,11 @@ struct threadInfo
 
 /* Define Function Prototypes */
 static void *parentHandler(void* tInfo);
-static void *childHandler1(void* tInfo);
-static void *childHandler2(void* tInfo);
+static void *child1Handler(void* tInfo);
+static void *child2Handler(void* tInfo);
 static void cpuTimerHandler(union sigval sv);
-void sigHandler(int signo);
+void sigHandlerChild1(int signo);
+void sigHandlerChild2(int signo);
 
 /* ------------------------------------------------------------- */
 int main(void) {
@@ -97,23 +102,25 @@ static void *parentHandler(void* tInfo) {
 
   // Create child thread 1
   printf("Creating child thread 1.\n");
-  status = pthread_create(&gThreads[1], NULL, childHandler1, (void*)&parentTinfo);
+  status = pthread_create(&gThreads[1], NULL, child1Handler, (void*)&parentTinfo);
   if(status) {
     printf("ERROR: Failed to create childThread1 - terminating.\n");
     return NULL;
   }
 
+  /*
   // Create child thread 2
   printf("Creating child thread 2.\n");
-  status = pthread_create(&gThreads[2], NULL, childHandler2, (void*)&parentTinfo);
+  status = pthread_create(&gThreads[2], NULL, child2Handler, (void*)&parentTinfo);
   if(status) {
     printf("ERROR: Failed to create childThread2 - terminating.\n");
     return NULL;
   }
+  */
 
   // Initialize child threads; wait until all threads are finished
   pthread_join(gThreads[1], NULL);
-  pthread_join(gThreads[2], NULL);
+  //pthread_join(gThreads[2], NULL);
 
   // Write parent thread complete to log file
   gettimeofday(&tv, NULL);
@@ -130,56 +137,73 @@ static void *parentHandler(void* tInfo) {
 }
 
 /* ------------------------------------------------------------- */
-static void *childHandler1(void* tInfo) {
+static void *child1Handler(void* tInfo) {
   struct threadInfo child1Tinfo = *(struct threadInfo*)tInfo;
-  FILE* pFile = NULL;
   struct timeval tv;
   //int status = 0;
 
-  // Capture thread start time
+  // Capture thread start time and threadId
   gettimeofday(&tv, NULL);
+  gChild1Tid = (pid_t)syscall(SYS_gettid);
+
+  // Define signal handlers and global var for log filename
+  gLogFilename = child1Tinfo.filename;
+  signal(SIGUSR1, sigHandlerChild1);
+  signal(SIGUSR2, sigHandlerChild1);
+
+  printf("[Child Thread 1]: Started with PID {%d} and TID {%d}.\n", 
+          child1Tinfo.pid, gChild1Tid);
 
   // Open shared file to write to
-  if ((pFile = fopen(child1Tinfo.filename, "a")) == NULL){
+  if ((pChild1File = fopen(child1Tinfo.filename, "a")) == NULL){
     printf("ERROR: Failed to open logfile for childThread1 - terminating.\n");
     return NULL;
   }
 
   // Write thread info and starttime to file
   pthread_mutex_lock(&gFileMutex);
-  fprintf(pFile, "[Child Thread 1]: Started at %s", asctime(gmtime(&tv.tv_sec)));
-  fprintf(pFile, "[Child Thread 1]: Started with PID {%d} and TID {%d}.\n", 
+  fprintf(pChild1File, "[Child Thread 1]: Started at %s", asctime(gmtime(&tv.tv_sec)));
+  fprintf(pChild1File, "[Child Thread 1]: Started with PID {%d} and TID {%d}.\n", 
           child1Tinfo.pid, (pid_t)syscall(SYS_gettid));
   pthread_mutex_unlock(&gFileMutex);
 
   // Read input file to analyze; print an error if file not found or fails to open
   // TODO
 
-  sleep(WT);
+  printf("sleep.\n");
+  sleep(45);
 
   // Close shared file
-  fclose(pFile);
+  fclose(pChild1File);
 
   printf("Child thread 1 complete.\n");
   return NULL;
 }
 
 /* ------------------------------------------------------------- */
-static void *childHandler2(void* tInfo) {
+static void *child2Handler(void* tInfo) {
   struct threadInfo child2Tinfo = *(struct threadInfo*)tInfo;
-  FILE* pFile = NULL;
   struct timeval tv;
   struct sigevent sigEvent;
   struct itimerspec timeSpec;
   timer_t timerId;
   int status = 0;
 
+  // Capture thread start time and threadId
+  gettimeofday(&tv, NULL);
+  gChild2Tid = (pid_t)syscall(SYS_gettid);
+
+  /*
   // Define signal handlers and global var for log filename
   gLogFilename = child2Tinfo.filename;
-  signal(SIGUSR1, sigHandler);
+  signal(SIGUSR1, sigHandlerChild2);
+  signal(SIGUSR2, sigHandlerChild2);
+  */
+
+  printf("[Child Thread 2]: Started with PID {%d} and TID {%d}.\n", 
+          child2Tinfo.pid, gChild2Tid);
 
   // Clear struct memory to 0
-  memset(&tv, 0, sizeof(struct timeval));
   memset(&sigEvent, 0, sizeof(struct sigevent));
   memset(&timeSpec, 0, sizeof(struct itimerspec));
 
@@ -198,15 +222,15 @@ static void *childHandler2(void* tInfo) {
   gettimeofday(&tv, NULL);
 
   // Open shared file to write to
-  if ((pFile = fopen(child2Tinfo.filename, "a")) == NULL){
+  if ((pChild2File = fopen(child2Tinfo.filename, "a")) == NULL){
     printf("ERROR: Failed to open logfile for childThread2 - terminating.\n");
     return NULL;
   }
 
   // Write thread info and starttime to file
   pthread_mutex_lock(&gFileMutex);
-  fprintf(pFile, "[Child Thread 2]: Started at %s", asctime(gmtime(&tv.tv_sec)));
-  fprintf(pFile, "[Child Thread 2]: Started with PID {%d} and TID {%d}.\n", 
+  fprintf(pChild2File, "[Child Thread 2]: Started at %s", asctime(gmtime(&tv.tv_sec)));
+  fprintf(pChild2File, "[Child Thread 2]: Started with PID {%d} and TID {%d}.\n", 
           child2Tinfo.pid, (pid_t)syscall(SYS_gettid));
   pthread_mutex_unlock(&gFileMutex);
 
@@ -223,10 +247,10 @@ static void *childHandler2(void* tInfo) {
   }
 
   // Loop program - Sig Event Handler will kill thread
-  sleep(10);
+  sleep(60);
   
   // Close shared file
-  fclose(pFile);
+  fclose(pChild2File);
 
   printf("Child thread 2 complete.\n");
   return NULL;
@@ -234,21 +258,17 @@ static void *childHandler2(void* tInfo) {
 
 /* ------------------------------------------------------------- */
 static void cpuTimerHandler(union sigval sv){
-  FILE* pFile;
   FILE* pCpuFile = NULL;
   char* filename = (char*)sv.sival_ptr;
   char cpuStatus1[READ_BUFFER_SIZE];
   char cpuStatus2[READ_BUFFER_SIZE];
 
+  signal(SIGUSR1, sigHandlerChild2);
+  signal(SIGUSR2, sigHandlerChild2);
+
   // Open /proc/stat file to read from
   if ((pCpuFile = fopen("/proc/stat", "r")) == NULL){
     printf("ERROR: Failed to open /proc/stat for childThread2 - returning from timer thread.\n");
-    return;
-  }
-
-  // Open shared file to write to
-  if ((pFile = fopen(filename, "a")) == NULL){
-    printf("ERROR: Failed to open logfile for childThread2 - terminating.\n");
     return;
   }
 
@@ -259,28 +279,70 @@ static void cpuTimerHandler(union sigval sv){
 
   // Write output to file
   pthread_mutex_lock(&gFileMutex);
-  fprintf(pFile, "[Child Thread 2]:\n%s%s", cpuStatus1, cpuStatus2);
+  fprintf(pChild2File, "[Child Thread 2]:\n%s%s", cpuStatus1, cpuStatus2);
   pthread_mutex_unlock(&gFileMutex);
 
   // Close /proc/stat file
-  fclose(pFile);
   fclose(pCpuFile);
 }
 
 /* ------------------------------------------------------------- */
-void sigHandler(int signo) {
+void sigHandlerChild1(int signo) {
   FILE * pLogFile = NULL;
   if((pLogFile = fopen(gLogFilename, "a")) == NULL){
-    printf("ERROR: Failed to open logfile for sigHandler - terminating.\n");
+    printf("ERROR: Failed to open logfile for sigHandlerChild1 - terminating.\n");
     return;
   }
 
   if(signo == SIGUSR1){
+    printf("[Child Thread 1]: SIGUSR1 Signal received\n");
+
     pthread_mutex_lock(&gFileMutex);
-    fprintf(pLogFile, "USR1 Signal received");
+    fprintf(pChild1File, "[Child Thread 1]: USR1 Signal received\n");
     pthread_mutex_unlock(&gFileMutex);
 
+    //pthread_exit(0);
+    //fclose(pChild1File);
+
+  } else if(signo == SIGUSR2){
+    printf("[Child Thread 1]: SIGUSR2 Signal received\n");
+
+    pthread_mutex_lock(&gFileMutex);
+    fprintf(pChild1File, "[Child Thread 1]: USR2 Signal received\n");
+    pthread_mutex_unlock(&gFileMutex);
+
+    //pthread_exit(0);
+    //fclose(pChild1File);
   }
 
+}
+/* ------------------------------------------------------------- */
+void sigHandlerChild2(int signo) {
+  FILE * pLogFile = NULL;
+  if((pLogFile = fopen(gLogFilename, "a")) == NULL){
+    printf("ERROR: Failed to open logfile for sigHandlerChild2 - terminating.\n");
+    return;
+  }
+
+  if(signo == SIGUSR1){
+    printf("[Child Thread 2]: SIGUSR1 Signal received\n");
+
+    pthread_mutex_lock(&gFileMutex);
+    fprintf(pChild2File, "[Child Thread 2]: USR1 Signal received\n");
+    pthread_mutex_unlock(&gFileMutex);
+
+    fclose(pChild2File);
+    pthread_kill(gChild2Tid, SIGUSR1);
+
+  } else if(signo == SIGUSR2){
+    printf("[Child Thread 2]: SIGUSR2 Signal received\n");
+
+    pthread_mutex_lock(&gFileMutex);
+    fprintf(pChild2File, "[Child Thread 2]: USR2 Signal received\n");
+    pthread_mutex_unlock(&gFileMutex);
+
+    fclose(pChild2File);
+    pthread_kill(gChild2Tid, SIGUSR2);
+  }
 }
 /* ------------------------------------------------------------- */
