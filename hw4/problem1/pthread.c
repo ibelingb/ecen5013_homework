@@ -22,7 +22,7 @@
 //#include <sys/wait.h>
 
 #define NUM_THREADS 3
-#define WT 5
+#define NUM_LETTERS 26
 #define CPU_STAT_LINES 2
 #define READ_BUFFER_SIZE 100
 
@@ -48,14 +48,21 @@ static void *child2Handler(void* tInfo);
 static void cpuTimerHandler(union sigval sv);
 void sigHandlerChild1(int signo);
 void sigHandlerChild2(int signo);
+int sortCharToArray(char c);
 
 /* ------------------------------------------------------------- */
-int main(void) {
+int main(int argc, char** argv) {
   char* filename = "shared_file.txt";
   int status = 0;
   struct threadInfo tInfo;
 
-  // TODO: Update to accept filename by cmdline
+  // Receive first cmd line argument as filename for shared file. Otherwise, set default filename.
+  if(argc > 1){
+    filename = argv[1];
+  } else {
+    printf("Filename for shared file not provided as command line argument, using 'shared_file.txt'\n");
+    filename = "shared_file.txt";
+  }
 
   // Create log file; Populate threadInfo object
   creat(filename, O_RDWR);
@@ -140,7 +147,12 @@ static void *parentHandler(void* tInfo) {
 static void *child1Handler(void* tInfo) {
   struct threadInfo child1Tinfo = *(struct threadInfo*)tInfo;
   struct timeval tv;
-  //int status = 0;
+  int charCount[NUM_LETTERS]; // Array to track char count from input file
+  FILE * inputFile = NULL;
+  char * inputFilename = "input_file.txt";
+  char charFromFile = EOF;
+  int charArrayIndex = 0;
+  size_t i = 0;
 
   // Capture thread start time and threadId
   gettimeofday(&tv, NULL);
@@ -160,6 +172,12 @@ static void *child1Handler(void* tInfo) {
     return NULL;
   }
 
+  // Open file to read characters from
+  if ((inputFile = fopen(inputFilename, "r")) == NULL){
+    printf("ERROR: Failed to open {%s} for childThread1 - exiting.\n", inputFilename);
+    return NULL;
+  }
+
   // Write thread info and starttime to file
   pthread_mutex_lock(&gFileMutex);
   fprintf(pChild1File, "[Child Thread 1]: Started at %s", asctime(gmtime(&tv.tv_sec)));
@@ -167,16 +185,31 @@ static void *child1Handler(void* tInfo) {
           child1Tinfo.pid, (pid_t)syscall(SYS_gettid));
   pthread_mutex_unlock(&gFileMutex);
 
-  // Read input file to analyze; print an error if file not found or fails to open
-  // TODO
+  // Analyze input file by reading each char
+  while((charFromFile = fgetc(inputFile)) != EOF) {
+    // Determine which index to sort char into, increment count
+    charArrayIndex = sortCharToArray(charFromFile);
+    if(charArrayIndex != -1){
+      charCount[charArrayIndex]++;
+    }
+  }
 
-  printf("sleep.\n");
+  // Print characters below a count of 100 read from the input file
+  printf("Total char count from {%s} with less than 100 entries:\n", inputFilename);
+  for(i=0; i<NUM_LETTERS; i++){
+    if(charCount[i] < 100){
+      printf("[%s]: %d\n", (char*)('a'+i), charCount[i]);
+    }
+  }
+
+  // TODO: remove - for testing signals
   sleep(45);
 
   // Close shared file
   fclose(pChild1File);
+  fclose(inputFile);
 
-  printf("Child thread 1 complete.\n");
+  printf("Child thread 1 completed processing in input file %s.\n", inputFilename);
   return NULL;
 }
 
@@ -345,4 +378,20 @@ void sigHandlerChild2(int signo) {
     pthread_kill(gChild2Tid, SIGUSR2);
   }
 }
+/* ------------------------------------------------------------- */
+int sortCharToArray(char c){
+  // Determine if char is lower case, return array index value to increment
+  if((c >= 'a') && (c <= 'z')){
+    return (c - 'a');
+  }
+    
+  // Determine if char is uppse case, return array index value to increment
+  if((c >= 'A') && (c <= 'Z')){
+    return (c - 'A');
+  }
+
+  // Otherwise, char read from file ignored by counting array
+  return -1;
+}
+
 /* ------------------------------------------------------------- */
