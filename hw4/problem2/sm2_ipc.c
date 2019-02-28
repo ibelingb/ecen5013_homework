@@ -1,9 +1,9 @@
 /* ECEN5013 - HW4
  * Date: 2/28/2019
  * Author: Brian Ibeling
- * About: C program to demonstrate IPC using pipes between processes.
+ * About: C program to demonstrate IPC using shared memory between processes.
  * Resources: Utilized the following resourecs when developing the code contained in this file.
- *    - 
+ *    - Linux Man Pages
  */
 
 #include <stdio.h>
@@ -13,6 +13,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/shm.h>
+#include <sys/mman.h>
 
 #include "payload.h"
 
@@ -22,117 +24,143 @@
 
 /* ------------------------------------------------------------- */
 int main() {
-  char* mFifo = "/tmp/ipc_fifo.txt";
-  char* logName = "pipe2_ipc.log";
+  char* logName = "shm2_ipc.log";
+  char* shmName = "/shm_ipc";
   FILE* logFile = NULL;
   struct Payload sendPayload = {0};
   struct Payload rcvPayload = {0};
-  int fd;
+  void* shmPtr = NULL;
+  int payloadSize = sizeof(struct Payload);
+  int shmSize = 10*payloadSize;
+  int shmFd;
+  int status = 0;
 
-  // Create FIFO
-  mkfifo(mFifo, 0666);
+  // Open shared memory 
+  shmFd = shm_open(shmName, O_RDWR, 0666);
+  //TODO
 
+  // Memory map the shared memory
+  shmPtr = mmap(0, shmSize, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd, 0);
+  if(*(int *)shmPtr == -1){
+    printf("ERROR: Failed to complete memory mapping for shared memory for SHM Process 1 - exiting.\n");
+    return -1;
+  }
 
   // Open Log file
   if ((logFile = fopen(logName, "w")) == NULL){
-    printf("ERROR: Failed to open logfile for FIFO Process 2 - exiting.\n");
+    printf("ERROR: Failed to open logfile for SHM Process 2 - exiting.\n");
     return -1;
   }
   
   // Log current process info to log file
-  printf("Pipe Process 2 Info:\nPID: {%d} | 1 FD open for FIFO.\n", getpid());
-  fprintf(logFile, "[%s] Pipe Process 2 Info:\nPID: {%d} | 1 FD open for FIFO.\n", getTimestamp(), getpid());
+  printf("SHM Process 2 Info:\nPID: {%d} | 1 FD open for SHM.\n", getpid());
+  fprintf(logFile, "[%s] SHM Process 2 Info:\nPID: {%d} | 1 FD open for SHM.\n", getTimestamp(), getpid());
 
   // --------------------------------------------------------------------------------
-  // Read payload from FIFO
-  fd = open(mFifo, O_RDONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
-  
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  // Read 5 payloads from SHM
+
+  // Read SHM[0]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*0)), payloadSize);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  // Read SHM[1]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*1)), payloadSize);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  // Read SHM[2]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*2)), payloadSize);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-
-  close(fd);
-  // --------------------------------------------------------------------------------
-  // Send payloads to FIFO
-  fd = open(mFifo, O_WRONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
-
-  updatePayload(&sendPayload, 3, "", 0); 
-  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
-          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
-
-  updatePayload(&sendPayload, 0, "update", 6); 
-  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
-          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
-
-  updatePayload(&sendPayload, 0, "", 0); 
-  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
-          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
-
-  // Delay to demonstrate FIFO read to block
-  sleep(2);
-
-  updatePayload(&sendPayload, 0, "TESTING", 7); 
-  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
-          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
-
-  updatePayload(&sendPayload, 1, "", 0); 
-  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
-          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
-
-  close(fd);
-
-  // --------------------------------------------------------------------------------
-  // Read payload from FIFO
-  fd = open(mFifo, O_RDONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
-
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  // Read SHM[3]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*3)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[4]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*4)), payloadSize);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
-  close(fd);
   // --------------------------------------------------------------------------------
-  // Send payloads to FIFO
-  fd = open(mFifo, O_WRONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
+  // Send next 5 payloads to SHM
 
-  updatePayload(&sendPayload, 99, "Ten!!", 5); 
-  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+  // Write SHM[5]
+  updatePayload(&sendPayload, 1, "", 0);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
+  memcpy((shmPtr+(payloadSize*5)), &sendPayload, payloadSize);
+  // Write SHM[6]
+  updatePayload(&sendPayload, 0, "test", 4);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*6)), &sendPayload, payloadSize);
+  // Write SHM[7]
+  updatePayload(&sendPayload, 1, "", 0);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*7)), &sendPayload, payloadSize);
+  // Write SHM[8]
+  updatePayload(&sendPayload, 0, "Message Number 4", 16);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*8)), &sendPayload, payloadSize);
+  // Write SHM[9]
+  updatePayload(&sendPayload, 0, "", 0);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*9)), &sendPayload, payloadSize);
 
-  close(fd);
+  // --------------------------------------------------------------------------------
+  // Delay to allow SHM Process 1 to write
+  printf("10 sec delay to allow SHM Process 1 write data and next 10 payloads.\n");
+  sleep(10);
+
+  // --------------------------------------------------------------------------------
+
+  // Read SHM[0]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*0)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[1]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*1)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[2]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*2)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[3]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*3)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[4]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*4)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[5]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*5)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[6]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*6)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[7]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*7)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[8]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*8)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[9]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*9)), payloadSize);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
   // --------------------------------------------------------------------------------
   // Cleanup
   fflush(logFile);
   fclose(logFile);
-  close(fd);
-  unlink(mFifo);
+  shm_unlink(shmName);
 }
 
-/* ------------------------------------------------------------- */

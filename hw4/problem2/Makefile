@@ -14,7 +14,7 @@ PQUEUE1 = pqueue1_ipc
 PQUEUE2 = pqueue2_ipc
 
 #TARGETS = $(PIPE1) $(PIPE2) $(SOCKET1) $(SOCKET2) $(SM1) $(SM2) $(PQUEUE1) $(PQUEUE2)
-TARGETS = $(SOCKET1) $(SOCKET2) 
+TARGETS = $(SM1) $(SM2) 
 all: $(TARGETS)
 
 $(PIPE1): $(PIPE1).c $(HEADERS)
