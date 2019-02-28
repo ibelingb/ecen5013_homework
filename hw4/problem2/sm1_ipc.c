@@ -35,7 +35,7 @@ int main() {
 
   // Open Log file
   if ((logFile = fopen(logName, "w")) == NULL){
-    printf("ERROR: Failed to open logfile for FIFO Process 1 - exiting.\n");
+    printf("ERROR: Failed to open logfile for FIFO Process 2 - exiting.\n");
     return -1;
   } 
 
@@ -45,6 +45,13 @@ int main() {
 
   // --------------------------------------------------------------------------------
   // Send payloads to FIFO
+  fd = open(mFifo, O_WRONLY);
+  if(fd == -1){
+    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
+    return -1;
+  }
+
+  sleep(10);
 
   updatePayload(&sendPayload, 1, "", 0);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 

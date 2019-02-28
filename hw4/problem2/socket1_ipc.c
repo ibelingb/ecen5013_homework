@@ -13,6 +13,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "payload.h"
 
@@ -23,101 +25,116 @@ void updatePayload(struct Payload* payload, unsigned char cmd, char* msg, unsign
 
 /* ------------------------------------------------------------- */
 int main() {
-  char* mFifo = "/tmp/ipc_fifo.txt";
-  char* logName = "pipe1_ipc.log";
+  char* logName = "socket1_ipc.log";
+  char* socketPath = "/tmp/ipc_socket";
   FILE* logFile = NULL;
   struct Payload sendPayload = {0};
   struct Payload rcvPayload = {0};
-  int fd;
+  int sockfd;
+  int sockfd2;
+  int status;
+  unsigned int cliLen;
+  struct sockaddr_un servAddr;
+  struct sockaddr_un cliAddr;
 
-  // Create FIFO
-  mkfifo(mFifo, 0666);
+  // Create socket
+  sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if(sockfd == -1){
+    printf("ERROR: Failed to create socket for Process 1 - exiting.\n");
+    return -1;
+  }
+
+  // Set properties and bind socket
+  servAddr.sun_family = AF_UNIX;
+  strcpy(servAddr.sun_path, socketPath);
+  status = bind(sockfd, (struct sockaddr*)&servAddr, sizeof(servAddr));
+  if(status == -1){
+    printf("ERROR: Failed to bind socket for Process 1 - exiting.\n");
+    return -1;
+  }
+
+  // Listen for client connection
+  status = listen(sockfd, 5);
+  if(status == -1){
+    printf("ERROR: Failed to listen successfully for socket on Process 1 - exiting.\n");
+    return -1;
+  }
+
+  // Accept client connection
+  cliLen = sizeof(cliAddr);
+  sockfd2 = accept(sockfd, (struct sockaddr*)&cliAddr, &cliLen);
+  if(sockfd2 == -1){
+    printf("ERROR: Failed to accept client connection for socket on Process 1 - exiting.\n");
+    return -1;
+  }
 
   // Open Log file
   if ((logFile = fopen(logName, "w")) == NULL){
-    printf("ERROR: Failed to open logfile for FIFO Process 1 - exiting.\n");
+    printf("ERROR: Failed to open logfile for Socket Process 1 - exiting.\n");
     return -1;
   } 
 
   // Log current process info to log file
-  printf("Pipe Process 1 Info:\nPID: {%d} | 1 FD open for FIFO.\n", getpid());
-  fprintf(logFile, "[%s] Pipe Process 1 Info:\nPID: {%d} | 1 FD open for FIFO.\n", getTimestamp(), getpid());
+  printf("Socket Process 1 Info:\nPID: {%d} | Log file and 2 Socket resources allocated.\n", getpid());
+  fprintf(logFile, "[%s] Socket Process 1 Info:\nPID: {%d} | Log file and 2 Socket resources allocated.\n", getTimestamp(), getpid());
 
   // --------------------------------------------------------------------------------
-  // Send payloads to FIFO
+  // Send payloads to client
 
   updatePayload(&sendPayload, 1, "", 0);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
+  send(sockfd2, &sendPayload, sizeof(sendPayload), 0);
   updatePayload(&sendPayload, 0, "test", 4);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
+  send(sockfd2, &sendPayload, sizeof(sendPayload), 0);
   updatePayload(&sendPayload, 1, "", 0);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
-  close(fd);
+  send(sockfd2, &sendPayload, sizeof(sendPayload), 0);
 
   // --------------------------------------------------------------------------------
   // Read payload from FIFO
-  fd = open(mFifo, O_RDONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
-
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  
+  recv(sockfd2, &rcvPayload, sizeof(rcvPayload), 0);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  recv(sockfd2, &rcvPayload, sizeof(rcvPayload), 0);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  recv(sockfd2, &rcvPayload, sizeof(rcvPayload), 0);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  recv(sockfd2, &rcvPayload, sizeof(rcvPayload), 0);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  recv(sockfd2, &rcvPayload, sizeof(rcvPayload), 0);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
-  close(fd);
   // --------------------------------------------------------------------------------
   // Send payloads to FIFO
-  fd = open(mFifo, O_WRONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
 
   updatePayload(&sendPayload, 1, "Testing Write 9", 15);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
+  send(sockfd2, &sendPayload, sizeof(sendPayload), 0);
 
-  close(fd);
   // --------------------------------------------------------------------------------
   // Read payload from FIFO
-  fd = open(mFifo, O_RDONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
 
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  recv(sockfd2, &rcvPayload, sizeof(rcvPayload), 0);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
-  close(fd);
   // --------------------------------------------------------------------------------
 
   // Cleanup
   fflush(logFile);
   fclose(logFile);
-  unlink(mFifo);
+  close(sockfd2);
+  close(sockfd);
+  unlink(socketPath); 
 }
 
-/* ------------------------------------------------------------- */
