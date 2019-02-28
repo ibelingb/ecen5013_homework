@@ -1,9 +1,9 @@
 /* ECEN5013 - HW4
  * Date: 2/28/2019
  * Author: Brian Ibeling
- * About: C program to demonstrate IPC using pipes between processes.
+ * About: C program to demonstrate IPC using Posix Message Queues between processes.
  * Resources: Utilized the following resourecs when developing the code contained in this file.
- *    - 
+ *    - Linux Man Pages
  */
 
 #include <stdio.h>
@@ -11,128 +11,122 @@
 #include <unistd.h>
 #include <fcntl.h> /* For file handling */
 #include <string.h>
+#include <mqueue.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include "payload.h"
 
+#define MSG_SIZE 8192
+
 /* Define static and global variables */
 
 /* Define Function Prototypes */
+void updatePayload(struct Payload* payload, unsigned char cmd, char* msg, unsigned char length);
 
 /* ------------------------------------------------------------- */
 int main() {
-  char* mFifo = "/tmp/ipc_fifo.txt";
-  char* logName = "pipe2_ipc.log";
+  char* logName = "mq2_ipc.log";
+  char* mqName = "/mq_ipc";
   FILE* logFile = NULL;
   struct Payload sendPayload = {0};
   struct Payload rcvPayload = {0};
-  int fd;
+  mqd_t mqd;
+  struct mq_attr mqAttr;
+  unsigned int readPrio = 1;
+  int status = 0;
 
-  // Create FIFO
-  mkfifo(mFifo, 0666);
+  printf("Size: %d\n", sizeof(struct Payload));
 
+  // Create/Open Message Queue
+  mqAttr.mq_flags = 0;
+  mqAttr.mq_maxmsg = 10;
+  mqAttr.mq_msgsize = sizeof(struct Payload);
+  mqAttr.mq_curmsgs = 0;
+
+  mqd = mq_open(mqName, O_RDONLY, 0666, mqAttr);
+  // TODO
 
   // Open Log file
   if ((logFile = fopen(logName, "w")) == NULL){
-    printf("ERROR: Failed to open logfile for FIFO Process 2 - exiting.\n");
+    printf("ERROR: Failed to open logfile for MessageQueue Process 2 - exiting.\n");
     return -1;
   }
   
   // Log current process info to log file
-  printf("Pipe Process 2 Info:\nPID: {%d} | 1 FD open for FIFO.\n", getpid());
-  fprintf(logFile, "[%s] Pipe Process 2 Info:\nPID: {%d} | 1 FD open for FIFO.\n", getTimestamp(), getpid());
+  printf("MessageQueue Process 2 Info:\nPID: {%d} | 1 FD open for MessageQueue.\n", getpid());
+  fprintf(logFile, "[%s] MessageQueue Process 2 Info:\nPID: {%d} | 1 FD open for MessageQueue.\n", getTimestamp(), getpid());
 
   // --------------------------------------------------------------------------------
-  // Read payload from FIFO
-  fd = open(mFifo, O_RDONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
-  
-  read(fd, &rcvPayload, sizeof(struct Payload));
+  // Read payload from MessageQueue
+
+  mq_getattr(mqd, &mqAttr);
+  // TODO: Add check for curMsgs > 0
+  /*
+  printf("flags: %ld | maxmsgs: %ld | msgsize: %ld | curmsgs: %ld\n", 
+      mqAttr.mq_flags,
+      mqAttr.mq_maxmsg,
+      mqAttr.mq_msgsize,
+      mqAttr.mq_curmsgs
+      );
+  */
+
+  //status = mq_receive(mqd, (char *)&rcvPayload, sizeof(struct Payload) +1, &readPrio);
+  status = mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
+  perror("Error: ");
+  printf("Bytes read: %d\n", status);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-  read(fd, &rcvPayload, sizeof(struct Payload));
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
-  read(fd, &rcvPayload, sizeof(struct Payload));
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
-  close(fd);
   // --------------------------------------------------------------------------------
-  // Send payloads to FIFO
-  fd = open(mFifo, O_WRONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
+  // Send payloads to MessageQueue
 
   updatePayload(&sendPayload, 3, "", 0); 
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
 
   updatePayload(&sendPayload, 0, "update", 6); 
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
 
   updatePayload(&sendPayload, 0, "", 0); 
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
 
-  // Delay to demonstrate FIFO read to block
+  // Delay to demonstrate MessageQueue read to block
   sleep(2);
 
   updatePayload(&sendPayload, 0, "TESTING", 7); 
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
 
   updatePayload(&sendPayload, 1, "", 0); 
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
 
-  close(fd);
 
   // --------------------------------------------------------------------------------
-  // Read payload from FIFO
-  fd = open(mFifo, O_RDONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
+  // Read payload from MessageQueue
 
-  read(fd, &rcvPayload, sizeof(struct Payload));
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
-  close(fd);
   // --------------------------------------------------------------------------------
-  // Send payloads to FIFO
-  fd = open(mFifo, O_WRONLY);
-  if(fd == -1){
-    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
-    return -1;
-  }
+  // Send payloads to MessageQueue
 
   updatePayload(&sendPayload, 99, "Ten!!", 5); 
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
-  write(fd, &sendPayload, sizeof(struct Payload));
 
-  close(fd);
   // --------------------------------------------------------------------------------
   // Cleanup
   fflush(logFile);
   fclose(logFile);
-  close(fd);
-  unlink(mFifo);
+  mq_close(mqd);
 }
 
 /* ------------------------------------------------------------- */
