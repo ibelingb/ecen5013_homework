@@ -53,8 +53,8 @@ int main() {
   }
   
   // Log current process info to log file
-  printf("SHM Process 2 Info:\nPID: {%d} | 1 FD open for SHM.\n", getpid());
-  fprintf(logFile, "[%s] SHM Process 2 Info:\nPID: {%d} | 1 FD open for SHM.\n", getTimestamp(), getpid());
+  printf("SHM Process 2 Info:\nPID: {%d} | 1 FD open for SHM, Log file open.\n", getpid());
+  fprintf(logFile, "[%s] SHM Process 2 Info:\nPID: {%d} | 1 FD open for SHM, Log file open.\n", getTimestamp(), getpid());
 
   // --------------------------------------------------------------------------------
   // Read 5 payloads from SHM
@@ -158,9 +158,40 @@ int main() {
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
   // --------------------------------------------------------------------------------
+  // Send next 5 payloads to SHM
+
+  // Write SHM[0]
+  updatePayload(&sendPayload, 1, "P2 Test1", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*0)), &sendPayload, payloadSize);
+  // Write SHM[1]
+  updatePayload(&sendPayload, 0, "P2 Test2", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*1)), &sendPayload, payloadSize);
+  // Write SHM[2]
+  updatePayload(&sendPayload, 1, "P2 Test3", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*2)), &sendPayload, payloadSize);
+  // Write SHM[3]
+  updatePayload(&sendPayload, 0, "P2 Test4", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*3)), &sendPayload, payloadSize);
+  // Write SHM[4]
+  updatePayload(&sendPayload, 0, "P2 Test5", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  memcpy((shmPtr+(payloadSize*4)), &sendPayload, payloadSize);
+
+  sleep(5); // Delay to allow P1 to complete before unlinking
+  // --------------------------------------------------------------------------------
   // Cleanup
   fflush(logFile);
   fclose(logFile);
+  close(shmFd);
   shm_unlink(shmName);
 }
 

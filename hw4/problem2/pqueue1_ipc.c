@@ -47,9 +47,8 @@ int main() {
   } 
 
   // Log current process info to log file
-  // TODO
-  printf("MessageQueue Process 1 Info:\nPID: {%d} | 1 FD open for MessageQueue.\n", getpid());
-  fprintf(logFile, "[%s] MessageQueue Process 1 Info:\nPID: {%d} | 1 FD open for MessageQueue.\n", getTimestamp(), getpid());
+  printf("MessageQueue Process 1 Info:\nPID: {%d} | 1 FD open for MessageQueue, Log file open.\n", getpid());
+  fprintf(logFile, "[%s] MessageQueue Process 1 Info:\nPID: {%d} | 1 FD open for MessageQueue, Log file open.\n", getTimestamp(), getpid());
 
   // --------------------------------------------------------------------------------
   // Send payloads to MessageQueue
@@ -58,25 +57,31 @@ int main() {
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
   mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
-
   updatePayload(&sendPayload, 0, "test", 4);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
   updatePayload(&sendPayload, 1, "", 0);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
 
   // --------------------------------------------------------------------------------
   // Read payload from MessageQueue
 
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
@@ -86,16 +91,69 @@ int main() {
   updatePayload(&sendPayload, 1, "Testing Write 9", 15);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
           getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
 
   // --------------------------------------------------------------------------------
   // Read payload from MessageQueue
 
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
   // --------------------------------------------------------------------------------
+  // Alternate writing and reading
 
-  sleep(5);
+  updatePayload(&sendPayload, 0, "P1 Test1", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
+
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 0, "P1 Test2", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
+
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 0, "P1 Test3", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
+
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 0, "P1 Test4", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
+
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 0, "P1 Test5", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
+
+  mq_receive(mqd, (char *)&rcvPayload, MSG_SIZE+1, &readPrio);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 0, "P1 Test6", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  mq_send(mqd, (char *)&sendPayload, sizeof(struct Payload)+1, readPrio);
+
+  // --------------------------------------------------------------------------------
 
   // Cleanup
   fflush(logFile);

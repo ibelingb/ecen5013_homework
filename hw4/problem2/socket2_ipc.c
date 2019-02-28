@@ -118,6 +118,59 @@ int main() {
   send(sockfd, &sendPayload, sizeof(sendPayload), 0);
 
   // --------------------------------------------------------------------------------
+  // Alternate reading and writing
+
+  recv(sockfd, &rcvPayload, sizeof(rcvPayload), 0);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 1, "P2 Test1", 8); 
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  send(sockfd, &sendPayload, sizeof(sendPayload), 0);
+
+  recv(sockfd, &rcvPayload, sizeof(rcvPayload), 0);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 1, "P2 Test2", 8); 
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  send(sockfd, &sendPayload, sizeof(sendPayload), 0);
+
+  recv(sockfd, &rcvPayload, sizeof(rcvPayload), 0);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 1, "P2 Test3", 8); 
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  send(sockfd, &sendPayload, sizeof(sendPayload), 0);
+
+  recv(sockfd, &rcvPayload, sizeof(rcvPayload), 0);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 1, "P2 Test4", 8); 
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  send(sockfd, &sendPayload, sizeof(sendPayload), 0);
+
+  recv(sockfd, &rcvPayload, sizeof(rcvPayload), 0);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  updatePayload(&sendPayload, 1, "P2 Test5", 8); 
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  send(sockfd, &sendPayload, sizeof(sendPayload), 0);
+
+  recv(sockfd, &rcvPayload, sizeof(rcvPayload), 0);
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  // --------------------------------------------------------------------------------
+
   // Cleanup
   fflush(logFile);
   fclose(logFile);

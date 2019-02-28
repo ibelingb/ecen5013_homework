@@ -40,11 +40,16 @@ int main() {
   } 
 
   // Log current process info to log file
-  printf("Pipe Process 1 Info:\nPID: {%d} | 1 FD open for FIFO.\n", getpid());
-  fprintf(logFile, "[%s] Pipe Process 1 Info:\nPID: {%d} | 1 FD open for FIFO.\n", getTimestamp(), getpid());
+  printf("Pipe Process 1 Info:\nPID: {%d} | 1 FD open for FIFO, Log file open..\n", getpid());
+  fprintf(logFile, "[%s] Pipe Process 1 Info:\nPID: {%d} | 1 FD open for FIFO, Log file open..\n", getTimestamp(), getpid());
 
   // --------------------------------------------------------------------------------
   // Send payloads to FIFO
+  fd = open(mFifo, O_WRONLY);
+  if(fd == -1){
+    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
+    return -1;
+  }
 
   updatePayload(&sendPayload, 1, "", 0);
   fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
@@ -100,7 +105,7 @@ int main() {
 
   close(fd);
   // --------------------------------------------------------------------------------
-  // Read payload from FIFO
+  // Read payloads from FIFO
   fd = open(mFifo, O_RDONLY);
   if(fd == -1){
     printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
@@ -111,13 +116,66 @@ int main() {
   fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
+  read(fd, &rcvPayload, sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  read(fd, &rcvPayload, sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  read(fd, &rcvPayload, sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  read(fd, &rcvPayload, sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
   close(fd);
   // --------------------------------------------------------------------------------
+  // Send payloads to FIFO
+  fd = open(mFifo, O_WRONLY);
+  if(fd == -1){
+    printf("Failed to open FIFO at {%s} - exiting.\n", mFifo);
+    return -1;
+  }
 
+  updatePayload(&sendPayload, 1, "P1 Test1", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  write(fd, &sendPayload, sizeof(struct Payload));
+
+  updatePayload(&sendPayload, 0, "P1 Test2", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  write(fd, &sendPayload, sizeof(struct Payload));
+
+  updatePayload(&sendPayload, 1, "P1 Test3", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  write(fd, &sendPayload, sizeof(struct Payload));
+
+  updatePayload(&sendPayload, 0, "P1 Test4", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  write(fd, &sendPayload, sizeof(struct Payload));
+
+  updatePayload(&sendPayload, 1, "P1 Test6", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  write(fd, &sendPayload, sizeof(struct Payload));
+
+  updatePayload(&sendPayload, 0, "P1 Test6", 8);
+  fprintf(logFile, "[%s] Payload Sent -  Cmd {%d} | Msg {%s} | Len {%d}.\n", 
+          getTimestamp(), sendPayload.cmd, sendPayload.msg, sendPayload.length);
+  write(fd, &sendPayload, sizeof(struct Payload));
+
+  close(fd);
+  // --------------------------------------------------------------------------------
   // Cleanup
   fflush(logFile);
   fclose(logFile);
   unlink(mFifo);
 }
 
-/* ------------------------------------------------------------- */

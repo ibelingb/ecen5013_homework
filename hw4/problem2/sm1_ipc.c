@@ -62,8 +62,8 @@ int main() {
 
   // Log current process info to log file
   // TODO
-  printf("SHM Process 1 Info:\nPID: {%d} | 1 FD open for SHM.\n", getpid());
-  fprintf(logFile, "[%s] SHM Process 1 Info:\nPID: {%d} | 1 FD open for SHM.\n", getTimestamp(), getpid());
+  printf("SHM Process 1 Info:\nPID: {%d} | 1 FD open for SHM, Log file open.\n", getpid());
+  fprintf(logFile, "[%s] SHM Process 1 Info:\nPID: {%d} | 1 FD open for SHM, Log file open.\n", getTimestamp(), getpid());
 
   // --------------------------------------------------------------------------------
   // Send 5 payloads to SHM
@@ -179,9 +179,40 @@ int main() {
   memcpy((shmPtr+(payloadSize*9)), &sendPayload, payloadSize);
 
   // --------------------------------------------------------------------------------
+  // Delay, allow other SHM process to read data, write to next 5 blocks of payload memory
+  printf("10 Payload messages successfully written to Shared Memory.\n");
+  printf("10 sec delay to allow SHM Process 2 read data and next 5 payloads.\n");
+  sleep(10);
+
+  // --------------------------------------------------------------------------------
+  // Read 5 payloads from SHM
+
+  // Read SHM[0]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*0)), sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[1]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*1)), sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[2]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*2)), sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[3]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*3)), sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+  // Read SHM[4]
+  memcpy(&rcvPayload, (shmPtr+(payloadSize*4)), sizeof(struct Payload));
+  fprintf(logFile, "[%s] Payload Received -  Cmd {%d} | Msg {%s} | Len {%d}.\n",
+          getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
+
+  // --------------------------------------------------------------------------------
 
   // Cleanup
   fflush(logFile);
   fclose(logFile);
+  close(shmFd);
 }
 
