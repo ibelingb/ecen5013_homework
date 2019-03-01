@@ -1,0 +1,17 @@
+[Child Thread 1]: Started at Thu Jan  1 00:17:31 1970
+[Child Thread 1]: Started with PID {2870} and TID {2872}.
+[Child Thread 1]: Total char count from {input_file.txt} with less than 100 entries:
+[Child Thread 1]: [b]: 20
+[Child Thread 1]: [j]: 4
+[Child Thread 1]: [k]: 25
+[Child Thread 1]: [q]: 0
+[Child Thread 1]: [v]: 95
+[Child Thread 1]: [w]: 31
+[Child Thread 1]: [x]: 61
+[Child Thread 1]: [y]: 41
+[Child Thread 1]: [z]: 14
+[Child Thread 1]: SIGUSR1 Signal received - thread terminated.
+[Parent Thread]: Started at Thu Jan  1 00:17:31 1970
+[Parent Thread]: Started with PID {2870} and TID {2871}.
+[Parent Thread]: Completed at {Thu Jan  1 00:17:37 1970
+}
