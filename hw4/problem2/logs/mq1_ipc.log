@@ -1,0 +1,24 @@
+[Thu Jan  1 00:46:34 1970] MessageQueue Process 1 Info:
+PID: {243} | 1 FD open for MessageQueue, Log file open.
+[Thu Jan  1 00:46:34 1970] Payload Sent -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 00:46:34 1970] Payload Sent -  Cmd {0} | Msg {test} | Len {4}.
+[Thu Jan  1 00:46:34 1970] Payload Sent -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 00:46:38 1970] Payload Received -  Cmd {3} | Msg {} | Len {0}.
+[Thu Jan  1 00:46:38 1970] Payload Received -  Cmd {0} | Msg {update} | Len {6}.
+[Thu Jan  1 00:46:38 1970] Payload Received -  Cmd {0} | Msg {} | Len {0}.
+[Thu Jan  1 00:46:38 1970] Payload Received -  Cmd {0} | Msg {TESTING} | Len {7}.
+[Thu Jan  1 00:46:38 1970] Payload Received -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 00:46:40 1970] Payload Sent -  Cmd {1} | Msg {Testing Write 9} | Len {15}.
+[Thu Jan  1 00:46:42 1970] Payload Received -  Cmd {99} | Msg {Ten!!} | Len {5}.
+[Thu Jan  1 00:46:44 1970] Payload Sent -  Cmd {0} | Msg {P1 Test1} | Len {8}.
+[Thu Jan  1 00:46:46 1970] Payload Received -  Cmd {1} | Msg {P2 Test1} | Len {8}.
+[Thu Jan  1 00:46:48 1970] Payload Sent -  Cmd {0} | Msg {P1 Test2} | Len {8}.
+[Thu Jan  1 00:46:50 1970] Payload Received -  Cmd {1} | Msg {P2 Test2} | Len {8}.
+[Thu Jan  1 00:46:52 1970] Payload Sent -  Cmd {0} | Msg {P1 Test3} | Len {8}.
+[Thu Jan  1 00:46:54 1970] Payload Received -  Cmd {1} | Msg {P2 Test3} | Len {8}.
+[Thu Jan  1 00:46:56 1970] Payload Sent -  Cmd {0} | Msg {P1 Test4} | Len {8}.
+[Thu Jan  1 00:46:58 1970] Payload Received -  Cmd {1} | Msg {P2 Test4} | Len {8}.
+[Thu Jan  1 00:47:00 1970] Payload Sent -  Cmd {0} | Msg {P1 Test5} | Len {8}.
+[Thu Jan  1 00:47:02 1970] Payload Received -  Cmd {1} | Msg {P2 Test5} | Len {8}.
+[Thu Jan  1 00:47:04 1970] Payload Sent -  Cmd {0} | Msg {P1 Test6} | Len {8}.
+[Thu Jan  1 00:47:04 1970] Message Queue Process 1 Complete.

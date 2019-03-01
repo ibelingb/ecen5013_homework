@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h> /* For file handling */
 #include <string.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/shm.h>
@@ -19,25 +20,35 @@
 #include "payload.h"
 
 /* Define static and global variables */
+char* logName = "shm2_ipc.log";
+char* shmName = "/shm_ipc";
+FILE* logFile = NULL;
+int shmFd;
 
 /* Define Function Prototypes */
+void updatePayload(struct Payload* payload, unsigned char cmd, char* msg, unsigned char length);
+void sigHandler(int sig);
 
 /* ------------------------------------------------------------- */
 int main() {
-  char* logName = "shm2_ipc.log";
-  char* shmName = "/shm_ipc";
-  FILE* logFile = NULL;
   struct Payload sendPayload = {0};
   struct Payload rcvPayload = {0};
+  struct sigaction sigAction;
   void* shmPtr = NULL;
   int payloadSize = sizeof(struct Payload);
   int shmSize = 10*payloadSize;
-  int shmFd;
-  int status = 0;
+
+  // Register Signal Handler
+  sigAction.sa_handler = sigHandler;
+  sigAction.sa_flags = 0;
+  sigaction(SIGINT, &sigAction, NULL);
 
   // Open shared memory 
   shmFd = shm_open(shmName, O_RDWR, 0666);
-  //TODO
+  if(shmFd == -1){
+    printf("SHM Process 2 failed to open shared memory - exiting.\n");
+    return -1;
+  }
 
   // Memory map the shared memory
   shmPtr = mmap(0, shmSize, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd, 0);
@@ -189,9 +200,34 @@ int main() {
   sleep(5); // Delay to allow P1 to complete before unlinking
   // --------------------------------------------------------------------------------
   // Cleanup
+  printf("[%s] SHM Process 2 Complete.\n", getTimestamp());
+  fprintf(logFile, "[%s] SHM Process 2 Complete.\n", getTimestamp());
+
   fflush(logFile);
   fclose(logFile);
   close(shmFd);
   shm_unlink(shmName);
 }
 
+// --------------------------------------------------------------------------------
+void sigHandler(int sig){
+  // Ensure logFile is closed before opening
+  fflush(logFile);
+  fclose(logFile);
+
+  // Open log to capture that signal event has occurred
+  if ((logFile = fopen(logName, "w")) == NULL){
+    printf("ERROR: Failed to open logfile in SHM Process 2 sigHandler() - Exiting and cleaning resources.\n");
+  }
+
+  printf("[%s] SIGINT signal received! Killing SHM 2 process {%d}\n.", getTimestamp(), getpid());
+  fprintf(logFile, "[%s] SIGINT signal received! Killing SHM 2 process {%d}\n.", getTimestamp(), getpid());
+
+  // cleanup resources
+  fflush(logFile);
+  fclose(logFile);
+  close(shmFd);
+  shm_unlink(shmName);
+
+  exit(1);
+}

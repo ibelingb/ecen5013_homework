@@ -1,7 +1,7 @@
 /* ECEN5013 - HW4
  * Date: 2/28/2019
  * Author: Brian Ibeling
- * About: C program to demonstrate IPC using pipes between processes.
+ * About: C program to demonstrate IPC using sockets between processes.
  * Resources: Utilized the following resourecs when developing the code contained in this file.
  *    - 
  */
@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h> /* For file handling */
 #include <string.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -19,23 +20,33 @@
 #include "payload.h"
 
 /* Define static and global variables */
+char* logName = "socket1_ipc.log";
+char* socketPath = "/tmp/ipc_socket";
+FILE* logFile = NULL;
+int sockfd;
+int sockfd2;
 
 /* Define Function Prototypes */
 void updatePayload(struct Payload* payload, unsigned char cmd, char* msg, unsigned char length);
+void sigHandler(int sig);
 
 /* ------------------------------------------------------------- */
 int main() {
-  char* logName = "socket1_ipc.log";
-  char* socketPath = "/tmp/ipc_socket";
-  FILE* logFile = NULL;
   struct Payload sendPayload = {0};
   struct Payload rcvPayload = {0};
-  int sockfd;
-  int sockfd2;
   int status;
   unsigned int cliLen;
   struct sockaddr_un servAddr;
   struct sockaddr_un cliAddr;
+  struct sigaction sigAction;
+
+  // Register Signal Handler
+  sigAction.sa_handler = sigHandler;
+  sigAction.sa_flags = SA_RESTART;
+  sigaction(SIGINT, &sigAction, NULL);
+
+  // Cleanup if existing resources remain from last execution
+  unlink(socketPath); 
 
   // Create socket
   sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -54,6 +65,7 @@ int main() {
   }
 
   // Listen for client connection
+  printf("Awaiting client connection...\n");
   status = listen(sockfd, 5);
   if(status == -1){
     printf("ERROR: Failed to listen successfully for socket on Process 1 - exiting.\n");
@@ -182,6 +194,8 @@ int main() {
   send(sockfd2, &sendPayload, sizeof(sendPayload), 0);
 
   // --------------------------------------------------------------------------------
+  printf("[%s] Socket Process 1 Complete.\n", getTimestamp());
+  fprintf(logFile, "[%s] Socket Process 1 Complete.\n", getTimestamp());
 
   // Cleanup
   fflush(logFile);
@@ -189,5 +203,29 @@ int main() {
   close(sockfd2);
   close(sockfd);
   unlink(socketPath); 
+}
+
+// --------------------------------------------------------------------------------
+void sigHandler(int sig){
+  // Ensure logFile is closed before opening
+  fflush(logFile);
+  fclose(logFile);
+
+  // Open log to capture that signal event has occurred
+  if ((logFile = fopen(logName, "w")) == NULL){
+    printf("ERROR: Failed to open logfile in Socket Process 1 sigHandler() - Exiting and cleaning resources.\n");
+  } 
+
+  printf("[%s] SIGINT signal received! Killing Socket 1 process {%d}\n.", getTimestamp(), getpid());
+  fprintf(logFile, "[%s] SIGINT signal received! Killing Socket 1 process {%d}\n.", getTimestamp(), getpid());
+
+  // Cleanup resources
+  fflush(logFile);
+  fclose(logFile);
+  close(sockfd2);
+  close(sockfd);
+  unlink(socketPath); 
+
+  exit(1);
 }
 

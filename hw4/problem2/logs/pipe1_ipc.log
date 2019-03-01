@@ -1,0 +1,22 @@
+[Thu Jan  1 01:45:10 1970] Pipe Process 1 Info - PID: {237} | 1 FD open for FIFO, Log file open.
+[Thu Jan  1 01:45:16 1970] Payload Sent -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 01:45:16 1970] Payload Sent -  Cmd {0} | Msg {test} | Len {4}.
+[Thu Jan  1 01:45:16 1970] Payload Sent -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 01:45:16 1970] Payload Received -  Cmd {3} | Msg {} | Len {0}.
+[Thu Jan  1 01:45:16 1970] Payload Received -  Cmd {0} | Msg {update} | Len {6}.
+[Thu Jan  1 01:45:16 1970] Payload Received -  Cmd {0} | Msg {} | Len {0}.
+[Thu Jan  1 01:45:18 1970] Payload Received -  Cmd {0} | Msg {TESTING} | Len {7}.
+[Thu Jan  1 01:45:18 1970] Payload Received -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 01:45:18 1970] Payload Sent -  Cmd {1} | Msg {Testing Write 9} | Len {15}.
+[Thu Jan  1 01:45:18 1970] Payload Received -  Cmd {99} | Msg {Ten!!} | Len {5}.
+[Thu Jan  1 01:45:18 1970] Payload Received -  Cmd {1} | Msg {P2 Test1} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Received -  Cmd {0} | Msg {P2 Test2} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Received -  Cmd {1} | Msg {P2 Test3} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Received -  Cmd {0} | Msg {P2 Test4} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Sent -  Cmd {1} | Msg {P1 Test1} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Sent -  Cmd {0} | Msg {P1 Test2} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Sent -  Cmd {1} | Msg {P1 Test3} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Sent -  Cmd {0} | Msg {P1 Test4} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Sent -  Cmd {1} | Msg {P1 Test5} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Payload Sent -  Cmd {0} | Msg {P1 Test6} | Len {8}.
+[Thu Jan  1 01:45:18 1970] Pipe Process 1 Complete.

@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h> /* For file handling */
 #include <string.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -19,19 +20,27 @@
 #include "payload.h"
 
 /* Define static and global variables */
+char* logName = "socket2_ipc.log";
+FILE* logFile = NULL;
+int sockfd;
 
 /* Define Function Prototypes */
+void updatePayload(struct Payload* payload, unsigned char cmd, char* msg, unsigned char length);
+void sigHandler(int sig);
 
 /* ------------------------------------------------------------- */
 int main() {
-  char* logName = "socket2_ipc.log";
   char* socketPath = "/tmp/ipc_socket";
-  FILE* logFile = NULL;
   struct Payload sendPayload = {0};
   struct Payload rcvPayload = {0};
-  int sockfd;
-  int status;
   struct sockaddr_un servAddr;
+  struct sigaction sigAction;
+  int status;
+
+  // Register Signal Handler
+  sigAction.sa_handler = sigHandler;
+  sigAction.sa_flags = 0;
+  sigaction(SIGINT, &sigAction, NULL);
 
   // Create client socket
   sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -170,10 +179,33 @@ int main() {
           getTimestamp(), rcvPayload.cmd, rcvPayload.msg, rcvPayload.length);
 
   // --------------------------------------------------------------------------------
-
   // Cleanup
+  printf("[%s] Socket Process 2 Complete.\n", getTimestamp());
+  fprintf(logFile, "[%s] Socket Process 2 Complete.\n", getTimestamp());
+
   fflush(logFile);
   fclose(logFile);
   close(sockfd);
 }
 
+// --------------------------------------------------------------------------------
+void sigHandler(int sig){
+  // Ensure logFile is closed before opening
+  fflush(logFile);
+  fclose(logFile);
+
+  // Open log to capture that signal event has occurred
+  if ((logFile = fopen(logName, "w")) == NULL){
+    printf("ERROR: Failed to open logfile in Socket Process 2 sigHandler() - Exiting and cleaning resources.\n");
+  }
+
+  printf("[%s] SIGINT signal received! Killing Socket 2 process {%d}\n.", getTimestamp(), getpid());
+  fprintf(logFile, "[%s] SIGINT signal received! Killing Socket 2 process {%d}\n.", getTimestamp(), getpid());
+
+  // cleanup resources
+  fflush(logFile);
+  fclose(logFile);
+  close(sockfd);
+
+  exit(1);
+}

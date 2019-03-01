@@ -1,0 +1,28 @@
+[Thu Jan  1 00:48:23 1970] SHM Process 1 Info:
+PID: {248} | 1 FD open for SHM, Log file open.
+[Thu Jan  1 00:48:23 1970] Payload Sent -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 00:48:23 1970] Payload Sent -  Cmd {0} | Msg {test} | Len {4}.
+[Thu Jan  1 00:48:23 1970] Payload Sent -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 00:48:23 1970] Payload Sent -  Cmd {0} | Msg {Message Number 4} | Len {16}.
+[Thu Jan  1 00:48:23 1970] Payload Sent -  Cmd {0} | Msg {} | Len {0}.
+[Thu Jan  1 00:48:33 1970] Payload Received -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 00:48:33 1970] Payload Received -  Cmd {0} | Msg {test} | Len {4}.
+[Thu Jan  1 00:48:33 1970] Payload Received -  Cmd {1} | Msg {} | Len {0}.
+[Thu Jan  1 00:48:33 1970] Payload Received -  Cmd {0} | Msg {Message Number 4} | Len {16}.
+[Thu Jan  1 00:48:33 1970] Payload Received -  Cmd {0} | Msg {} | Len {0}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {0} | Msg {test0} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {1} | Msg {test1} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {0} | Msg {test2} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {1} | Msg {test3} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {0} | Msg {test4} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {1} | Msg {test5} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {0} | Msg {test6} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {1} | Msg {test7} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {0} | Msg {test8} | Len {5}.
+[Thu Jan  1 00:48:33 1970] Payload Sent -  Cmd {1} | Msg {test9} | Len {5}.
+[Thu Jan  1 00:48:43 1970] Payload Received -  Cmd {1} | Msg {P2 Test1} | Len {8}.
+[Thu Jan  1 00:48:43 1970] Payload Received -  Cmd {0} | Msg {P2 Test2} | Len {8}.
+[Thu Jan  1 00:48:43 1970] Payload Received -  Cmd {1} | Msg {P2 Test3} | Len {8}.
+[Thu Jan  1 00:48:43 1970] Payload Received -  Cmd {0} | Msg {P2 Test4} | Len {8}.
+[Thu Jan  1 00:48:43 1970] Payload Received -  Cmd {0} | Msg {P2 Test5} | Len {8}.
+[Thu Jan  1 00:48:43 1970] SHM Process 1 Complete.

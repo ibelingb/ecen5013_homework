@@ -11,27 +11,34 @@
 #include <unistd.h>
 #include <fcntl.h> /* For file handling */
 #include <string.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include "payload.h"
 
 /* Define static and global variables */
+char* logName = "pipe2_ipc.log";
+char* mFifo = "/tmp/ipc_fifo.txt";
+FILE* logFile = NULL;
+int fd;
 
 /* Define Function Prototypes */
+void updatePayload(struct Payload* payload, unsigned char cmd, char* msg, unsigned char length);
+void sigHandler(int sig);
 
 /* ------------------------------------------------------------- */
 int main() {
-  char* mFifo = "/tmp/ipc_fifo.txt";
-  char* logName = "pipe2_ipc.log";
-  FILE* logFile = NULL;
   struct Payload sendPayload = {0};
   struct Payload rcvPayload = {0};
-  int fd;
+  struct sigaction sigAction;
 
-  // Create FIFO
-  mkfifo(mFifo, 0666);
+  // Register Signal Handler
+  sigAction.sa_handler = sigHandler;
+  sigAction.sa_flags = 0;
+  sigaction(SIGINT, &sigAction, NULL);
 
+  // NOTE: FIFO should be created by pipe1_ipc process; continuing
 
   // Open Log file
   if ((logFile = fopen(logName, "w")) == NULL){
@@ -40,8 +47,8 @@ int main() {
   }
   
   // Log current process info to log file
-  printf("Pipe Process 2 Info:\nPID: {%d} | 1 FD open for FIFO, Log file open.\n", getpid());
-  fprintf(logFile, "[%s] Pipe Process 2 Info:\nPID: {%d} | 1 FD open for FIFO, Log file open.\n", getTimestamp(), getpid());
+  printf("Pipe Process 2 Info - PID: {%d} | 1 FD open for FIFO, Log file open.\n", getpid());
+  fprintf(logFile, "[%s] Pipe Process 2 Info - PID: {%d} | 1 FD open for FIFO, Log file open.\n", getTimestamp(), getpid());
 
   // --------------------------------------------------------------------------------
   // Read payload from FIFO
@@ -182,9 +189,35 @@ int main() {
   close(fd);
   // --------------------------------------------------------------------------------
   // Cleanup
+  printf("[%s] Pipe Process 2 Complete.\n", getTimestamp());
+  fprintf(logFile, "[%s] Pipe Process 2 Complete.\n", getTimestamp());
+
   fflush(logFile);
   fclose(logFile);
   close(fd);
   unlink(mFifo);
+}
+
+// --------------------------------------------------------------------------------
+void sigHandler(int sig){
+  // Ensure logFile is closed before opening
+  fflush(logFile);
+  fclose(logFile);
+
+  // Open log to capture that signal event has occurred
+  if ((logFile = fopen(logName, "w")) == NULL){
+    printf("ERROR: Failed to open logfile in FIFO Process 2 sigHandler() - Exiting and cleaning resources.\n");
+  } 
+
+  printf("[%s] SIGINT signal received! Killing Pipe 2 process {%d}\n.", getTimestamp(), getpid());
+  fprintf(logFile, "[%s] SIGINT signal received! Killing Pipe 2 process {%d}\n.", getTimestamp(), getpid());
+
+  // cleanup resources
+  fflush(logFile);
+  fclose(logFile);
+  close(fd);
+  unlink(mFifo);
+
+  exit(1);
 }
 
