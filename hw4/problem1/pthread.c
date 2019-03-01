@@ -18,8 +18,6 @@
 #include <sys/syscall.h>
 #include <sys/time.h>
 #include <sys/signal.h>
-//#include <sys/types.h>
-//#include <sys/wait.h>
 
 #define NUM_THREADS 3
 #define NUM_LETTERS 26
@@ -61,7 +59,6 @@ int main(int argc, char** argv) {
     filename = argv[1];
   } else {
     printf("Filename for shared file not provided as command line argument, using 'shared_file.txt'\n");
-    filename = "shared_file.txt";
   }
 
   // Create log file; Populate threadInfo object
@@ -152,6 +149,7 @@ static void *child1Handler(void* tInfo) {
   char * inputFilename = "input_file.txt";
   char charFromFile = EOF;
   int charArrayIndex = 0;
+  char letter;
   size_t i = 0;
 
   // Capture thread start time and threadId
@@ -186,24 +184,28 @@ static void *child1Handler(void* tInfo) {
   pthread_mutex_unlock(&gFileMutex);
 
   // Analyze input file by reading each char
-  while((charFromFile = fgetc(inputFile)) != EOF) {
+  charFromFile = fgetc(inputFile);
+  while(feof(inputFile) == 0) {
     // Determine which index to sort char into, increment count
     charArrayIndex = sortCharToArray(charFromFile);
     if(charArrayIndex != -1){
       charCount[charArrayIndex]++;
     }
+
+    charFromFile = fgetc(inputFile);
   }
 
   // Print characters below a count of 100 read from the input file
   printf("Total char count from {%s} with less than 100 entries:\n", inputFilename);
   for(i=0; i<NUM_LETTERS; i++){
     if(charCount[i] < 100){
-      printf("[%s]: %d\n", (char*)('a'+i), charCount[i]);
+      letter = (char)(97+i);
+      printf("[%c]: %d\n", letter, charCount[i]);
     }
   }
 
   // TODO: remove - for testing signals
-  sleep(45);
+  //sleep(45);
 
   // Close shared file
   fclose(pChild1File);
