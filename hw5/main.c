@@ -7,6 +7,8 @@
  * References & Resources:
  *  - Leveraged example FreeRTOS/TI TIVA Demo code found at the following Github Link to create baseline for HW:
  *      https://github.com/akobyl/TM4C129_FreeRTOS_Demo
+ *  - Additionally, utilized example code provided by professor at the following URL:
+ *
  */
 /* ----------------------------------------------------------------------------- */
 #include <stdint.h>
@@ -49,10 +51,13 @@
 #define TMP102_TEMP_REG         (0x00ul)
 #define TMP102_TEMP_SCALEFACTOR (0.0625f)
 
+#define TEMP_ALERT_LIMIT (21) /* Celcius */
+
 /* ----------------------------------------------------------------------------- */
 /* Task and helper function prototype declarations */
 void ledTask(void *pvParameters);
 void temperatureTask(void *pvParameters);
+void alertTask(void *pvParameters);
 void loggerTask(void *pvParameters);
 float readTemp();
 void i2cInit();
@@ -77,7 +82,9 @@ typedef struct LedLogMsg {
 /* Define global variables */
 QueueHandle_t gxTempLogQueue;
 QueueHandle_t gxLedLogQueue;
+QueueHandle_t gxTempAlertQueue;
 uint32_t gui32SysClock;
+bool gAlertFlag;
 
 /* ----------------------------------------------------------------------------- */
 int main(void)
@@ -93,14 +100,19 @@ int main(void)
     i2cInit();
 
     /* Create logging queues to be shared across tasks */
-    gxTempLogQueue = xQueueCreate(LOG_QUEUE_SIZE, sizeof(struct TempLogMsg));
-    gxLedLogQueue  = xQueueCreate(LOG_QUEUE_SIZE, sizeof(struct LedLogMsg));
+    gxTempLogQueue   = xQueueCreate(LOG_QUEUE_SIZE, sizeof(struct TempLogMsg));
+    gxLedLogQueue    = xQueueCreate(LOG_QUEUE_SIZE, sizeof(struct LedLogMsg));
+    gxTempAlertQueue = xQueueCreate(LOG_QUEUE_SIZE, sizeof(struct TempLogMsg));
+
+    /* Initialize Temperature alert flag to false */
+    gAlertFlag = false;
 
     /* Define tasks to be executed by scheduler */
     /* Setting LED and Temp tasks at a higher priority since these require more specific timing */
     xTaskCreate(loggerTask, (const portCHAR *)"logger_task", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
     xTaskCreate(ledTask, (const portCHAR *)"led_task", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
     xTaskCreate(temperatureTask, (const portCHAR *)"temp_task", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+    xTaskCreate(alertTask, (const portCHAR *)"led_task", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
     vTaskStartScheduler();
     return 0;
@@ -157,9 +169,33 @@ void temperatureTask(void *pvParameters)
         xTempSendMsg.temp = readTemp();
         xTempSendMsg.timestamp = xTaskGetTickCount();
         xQueueSendToBack(gxTempLogQueue, (void*)&xTempSendMsg, (TickType_t)0);
+        xQueueSendToBack(gxTempAlertQueue, (void*)&xTempSendMsg, (TickType_t)0);
 
         /* Delay 1 sec */
         vTaskDelay(1000);
+    }
+}
+
+/* ----------------------------------------------------------------------------- */
+void alertTask(void *pvParameters)
+{
+    /* Receive the temp recorded by the tempTask, and if outside the specified
+     * limit, send an alert message to the UART console
+     * */
+
+    TempLogMsg receiveTempMsg;
+    memset(&receiveTempMsg, 0, sizeof(receiveTempMsg));
+
+    for (;;)
+    {
+      if(xQueueReceive(gxTempAlertQueue, (void*)&receiveTempMsg, (TickType_t)0) == pdTRUE){
+        /* Temp event received - Determine if temp outside of limit range */
+        if(receiveTempMsg.temp > (float)TEMP_ALERT_LIMIT) {
+          gAlertFlag = true;
+        } else {
+          gAlertFlag = false;
+        }
+      }
     }
 }
 
@@ -187,6 +223,10 @@ void loggerTask(void *pvParameters)
           i32TempFrac = (int32_t)(receiveTempMsg.temp * 1000.0f);
           i32TempFrac = i32TempFrac - (i32TempInt * 1000);
           UARTprintf("[%d] Temp Event | Temp:{%d.%d C}\n", receiveTempMsg.timestamp, i32TempInt, i32TempFrac);
+
+          /* If temp outside range, log alert */
+          if(gAlertFlag)
+            UARTprintf("[%d] Temp Event | ** ALERT ** Temperature outside limit of {%d C}\n", receiveTempMsg.timestamp, TEMP_ALERT_LIMIT);
         }
 
         if(xQueueReceive(gxLedLogQueue, (void*)&receiveLedMsg, (TickType_t)0) == pdTRUE){
